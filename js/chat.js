@@ -438,25 +438,12 @@ export function initChat() {
     }
   });
 
-  // ── Restore chat history from persisted state ──
-  const history = State.chatHistory || [];
-  if (history.length > 0) {
-    // Re-render persisted messages
-    history.forEach(msg => {
-      if (msg.role === 'user') {
-        addMessage('user', msg.content);
-      } else {
-        // For restored AI messages, re-parse in case they had recipe cards
-        // (though structured tags are stripped on first render, plain text is safe)
-        addMessage('ai', msg.content);
-      }
-    });
-  } else {
-    // ── Welcome message for first-time users ──
-    const welcomeText = '👋 Hey! I\'m FitBuddy, your AI fitness coach. Ask me about nutrition, workouts, recipes, or just tell me how you\'re feeling. I\'m here to help!';
-    addMessage('ai', welcomeText);
-    // Don't push welcome to history — it's a system greeting, not a conversation turn
-  }
+  // ── Reset chat history on start/reload for fresh agent session ──
+  State.set('chatHistory', []);
+
+  // ── Welcome message ──
+  const welcomeText = '👋 Hey! I\'m FitBuddy, your AI fitness coach. Ask me about nutrition, workouts, recipes, or just tell me how you\'re feeling. I\'m here to help!';
+  addMessage('ai', welcomeText);
 
   console.log('💬 Chat console initialized');
 }
