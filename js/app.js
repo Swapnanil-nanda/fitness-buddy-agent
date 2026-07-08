@@ -245,6 +245,7 @@ async function boot() {
 
   // Settings modal
   initSettings();
+  initLogout();
 
   // Hide onboarding if already done
   if (State.data.onboarded) {
@@ -289,6 +290,20 @@ export function calculateUserMetrics({ weight, height, age, gender, goal, activi
   const fat = Math.round((tdee * 0.30) / 9);
   
   return { bmi, tdee, macros: { protein, carbs, fat } };
+}
+
+// ──── Logout Option ────
+function initLogout() {
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      const confirmReset = confirm('🚪 Log Out & Reset All Data?\n\nThis will clear all your biometrics, settings, nutrition logs, exercises, and mini-game states. Are you sure?');
+      if (confirmReset) {
+        State.reset();
+        window.location.reload();
+      }
+    });
+  }
 }
 
 // ──── Settings Modal ────
