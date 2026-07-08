@@ -179,6 +179,10 @@
       <div id="play-tab" class="tab-pane">
         <div class="challenges-section">
           <p class="section-title">Daily Challenges</p>
+          <div class="custom-challenge-form" style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <input type="text" id="custom-challenge-text" placeholder="Add custom challenge (e.g. Do 50 pushups)" class="form-input" style="flex: 1; padding: 8px 12px; font-size: 13px;">
+            <button id="add-custom-challenge-btn" class="btn btn-secondary" style="padding: 8px 12px; font-size: 13px;">+ Add</button>
+          </div>
           <div id="challenges-list">
             <!-- Rendered dynamically -->
           </div>
@@ -230,6 +234,10 @@
       <div style="font-size: 48px; margin-bottom: 8px">🏋️</div>
       <div class="modal-title">Welcome to FitBuddy</div>
       <div class="modal-subtitle">Let's personalize your experience in seconds.</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="onboard-username">Username</label>
+      <input class="form-input" type="text" id="onboard-username" placeholder="e.g. alex123">
     </div>
     <div class="form-group">
       <label class="form-label" for="onboard-gender">Gender</label>
@@ -341,8 +349,12 @@
 <!-- Settings Modal -->
 <div class="modal-overlay" id="settings-modal">
   <div class="modal">
-    <div class="modal-title">👤 User Settings</div>
-    <div class="modal-subtitle">Update your profile info and optional biometrics.</div>
+    <div class="modal-title">Settings & Profile</div>
+    <div class="modal-subtitle">Update your personal biometrics</div>
+    <div class="form-group">
+      <label class="form-label" for="settings-username">Username (Account Name)</label>
+      <input class="form-input" type="text" id="settings-username" readonly style="opacity: 0.6; cursor: not-allowed; background: rgba(255,255,255,0.02);">
+    </div>
     
     <div class="form-row" style="display: flex; gap: 10px;">
       <div class="form-group" style="flex: 1;">

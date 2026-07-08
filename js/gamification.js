@@ -133,18 +133,24 @@ function handleXPGain({ amount, reason }) {
  */
 function toggleChallenge(id) {
   const challenges = State.today.challenges || [];
-  const challenge  = challenges.find(c => c.id === id);
-  if (!challenge) return;
+  const index = challenges.findIndex(c => c.id === id);
+  if (index === -1) return;
 
+  const challenge = challenges[index];
   challenge.completed = !challenge.completed;
-  State.save();
-  renderChallenges();
 
   if (challenge.completed) {
     EventBus.emit('xp:gained', { amount: challenge.xp, reason: `Challenge: ${challenge.text}` });
     showToast(`Challenge completed! +${challenge.xp} XP`, '🏅');
     EventBus.emit('challenge:completed', { id });
+
+    // If it's a temporary challenge (custom or AI-generated, not default c1/c2/c3)
+    if (!id.toString().startsWith('c')) {
+      challenges.splice(index, 1);
+    }
   }
+  State.save();
+  renderChallenges();
 }
 
 /**
@@ -153,16 +159,22 @@ function toggleChallenge(id) {
  */
 function autoCompleteChallenge(keyword) {
   const challenges = State.today.challenges || [];
-  const match = challenges.find(
+  const index = challenges.findIndex(
     c => !c.completed && c.text.toLowerCase().includes(keyword.toLowerCase())
   );
-  if (match) {
+  if (index !== -1) {
+    const match = challenges[index];
     match.completed = true;
-    State.save();
-    renderChallenges();
     EventBus.emit('xp:gained', { amount: match.xp, reason: `Auto-challenge: ${match.text}` });
     showToast(`Challenge completed! +${match.xp} XP`, '🏅');
     EventBus.emit('challenge:completed', { id: match.id });
+
+    // Remove if temporary
+    if (!match.id.toString().startsWith('c')) {
+      challenges.splice(index, 1);
+    }
+    State.save();
+    renderChallenges();
   }
 }
 
@@ -230,6 +242,31 @@ export function initGamification() {
   // Restore UI from persisted state
   updateLevelUI();
   renderChallenges();
+
+  // ── Custom Challenge Addition ──
+  const addBtn = document.getElementById('add-custom-challenge-btn');
+  const input = document.getElementById('custom-challenge-text');
+  if (addBtn && input) {
+    addBtn.addEventListener('click', () => {
+      const text = input.value.trim();
+      if (!text) return;
+      
+      const newChallenge = {
+        id: 'cust_' + Date.now(),
+        text,
+        xp: 15,
+        completed: false
+      };
+      
+      const challenges = State.today.challenges || [];
+      challenges.push(newChallenge);
+      State.set('today.challenges', challenges);
+      renderChallenges();
+      
+      input.value = '';
+      showToast(`Custom challenge "${text}" added!`, '🎯');
+    });
+  }
 
   // Set up click handlers for challenges
   initChallengeClicks();

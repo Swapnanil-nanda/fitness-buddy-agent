@@ -1033,24 +1033,28 @@ html, body {
   font-size: 16px;
   font-weight: 700;
   transition: all 4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: scale(0.8);
+  background: linear-gradient(135deg, var(--indigo), var(--teal));
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(94, 92, 230, 0.4);
 }
 
 .breather-circle.inhale {
   transform: scale(1.3);
-  background: radial-gradient(circle, rgba(94, 92, 230, 0.3), rgba(100, 210, 255, 0.1));
-  box-shadow: 0 0 60px rgba(94, 92, 230, 0.3), 0 0 120px rgba(100, 210, 255, 0.1);
+  background: linear-gradient(135deg, var(--purple), var(--blue));
+  box-shadow: 0 15px 45px rgba(191, 90, 242, 0.5);
 }
 
 .breather-circle.hold {
   transform: scale(1.3);
-  background: radial-gradient(circle, rgba(191, 90, 242, 0.3), rgba(94, 92, 230, 0.1));
-  box-shadow: 0 0 70px rgba(191, 90, 242, 0.3);
+  background: linear-gradient(135deg, var(--pink), var(--purple));
+  box-shadow: 0 15px 50px rgba(255, 55, 95, 0.5);
 }
 
 .breather-circle.exhale {
   transform: scale(0.8);
-  background: radial-gradient(circle, rgba(100, 210, 255, 0.2), rgba(94, 92, 230, 0.05));
-  box-shadow: 0 0 40px rgba(100, 210, 255, 0.15);
+  background: linear-gradient(135deg, var(--teal), var(--green));
+  box-shadow: 0 10px 30px rgba(100, 210, 255, 0.4);
 }
 
 /* Reflex Dash */

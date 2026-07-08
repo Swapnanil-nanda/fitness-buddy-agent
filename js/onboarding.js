@@ -29,6 +29,7 @@ const GOAL_ADJUSTMENTS = {
  */
 export function initOnboarding() {
   // ── DOM References ──
+  const usernameInput = document.getElementById('onboard-username');
   const weightInput  = document.getElementById('onboard-weight');
   const heightInput  = document.getElementById('onboard-height');
   const ageInput     = document.getElementById('onboard-age');
@@ -46,9 +47,8 @@ export function initOnboarding() {
   const modal        = document.getElementById('onboarding-modal');
 
   // ── Recalculate on every input change ──
-  const inputs = [weightInput, heightInput, ageInput, genderSelect];
+  const inputs = [usernameInput, weightInput, heightInput, ageInput, genderSelect];
   inputs.forEach(el => el.addEventListener('input', recalculate));
-  // Also listen for 'change' on the select (some browsers don't fire 'input')
   genderSelect.addEventListener('change', recalculate);
 
   /**
@@ -56,16 +56,18 @@ export function initOnboarding() {
    * Runs on every keystroke / dropdown change.
    */
   function recalculate() {
+    const username = usernameInput.value.trim();
     const weight = parseFloat(weightInput.value);
     const height = parseFloat(heightInput.value);
     const age    = parseInt(ageInput.value, 10);
     const gender = genderSelect.value;
 
     // ── Validate inputs ──
+    const validUsername = username.length >= 2;
     const validWeight = weight >= 20 && weight <= 300;
     const validHeight = height >= 100 && height <= 250;
     const validAge    = age >= 10 && age <= 120;
-    const allValid    = validWeight && validHeight && validAge;
+    const allValid    = validUsername && validWeight && validHeight && validAge;
 
     // Enable / disable submit
     submitBtn.disabled = !allValid;
@@ -142,13 +144,35 @@ export function initOnboarding() {
   let _computed = null;
 
   // ── Submit Handler ──
-  submitBtn.addEventListener('click', () => {
+  submitBtn.addEventListener('click', async () => {
     if (!_computed) return;
+
+    const username = usernameInput.value.trim();
+    if (!username) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Syncing...';
+
+    try {
+      const isLocal = window.location.port === '3000' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const endpoint = isLocal ? `http://localhost:3001/api/user-data?username=${encodeURIComponent(username)}` : `/api/user-data?username=${encodeURIComponent(username)}`;
+      
+      const res = await fetch(endpoint);
+      const resData = await res.json();
+      
+      if (resData.success && resData.data) {
+        localStorage.setItem('fitbuddy_state', JSON.stringify(resData.data));
+        window.location.reload();
+        return;
+      }
+    } catch (e) {
+      console.warn('DB check failed, creating local user first:', e);
+    }
 
     const { bmi, goalKey, adjustedTDEE, proteinG, carbsG, fatG, weight, height, age, gender } = _computed;
 
-    // Persist the full user object
     State.patch('user', {
+      username,
       weight,
       height,
       age,
@@ -159,13 +183,8 @@ export function initOnboarding() {
       macros: { protein: proteinG, carbs: carbsG, fat: fatG }
     });
 
-    // Mark onboarding complete
     State.set('onboarded', true);
-
-    // Hide the modal
     modal.classList.remove('visible');
-
-    // Welcome toast
-    showToast(`Welcome to FitBuddy! Your daily target is ${adjustedTDEE} kcal.`, '🎉', 3500);
+    showToast(`Account "${username}" created! Target: ${adjustedTDEE} kcal.`, '🎉', 3500);
   });
 }

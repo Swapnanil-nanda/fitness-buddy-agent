@@ -12,6 +12,42 @@ const path = require('path');
 const PORT = 3001;
 const STATIC_PORT = 3000;
 
+const DB_PATH = path.join(__dirname, 'db.json');
+
+class JSONDatabase {
+  constructor() {
+    if (!fs.existsSync(DB_PATH)) {
+      fs.writeFileSync(DB_PATH, JSON.stringify({ users: {} }, null, 2));
+    }
+  }
+
+  read() {
+    try {
+      const data = fs.readFileSync(DB_PATH, 'utf8');
+      return JSON.parse(data);
+    } catch (e) {
+      return { users: {} };
+    }
+  }
+
+  write(data) {
+    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+  }
+
+  getUser(username) {
+    const db = this.read();
+    return db.users[username.toLowerCase()] || null;
+  }
+
+  saveUser(username, userData) {
+    const db = this.read();
+    db.users[username.toLowerCase()] = userData;
+    this.write(db);
+  }
+}
+
+const db = new JSONDatabase();
+
 let cachedToken = null;
 let tokenExpiry = 0;
 
@@ -80,13 +116,50 @@ async function getIAMToken(apiKey) {
 const apiServer = http.createServer(async (req, res) => {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
 
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname.replace(/\/$/, '');
+
+  // ── Database Routes ──
+  if (req.method === 'GET' && pathname === '/api/user-data') {
+    const username = parsedUrl.searchParams.get('username');
+    if (!username) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Username is required' }));
+      return;
+    }
+    const userData = db.getUser(username);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, data: userData }));
+    return;
+  }
+
+  if (req.method === 'POST' && pathname === '/api/user-data') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const { username, state } = JSON.parse(body);
+        if (!username) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Username is required' }));
+          return;
+        }
+        db.saveUser(username, state);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
   if (req.method === 'POST' && pathname === '/api/chat') {
     let body = '';
     req.on('data', chunk => body += chunk);

@@ -22,6 +22,7 @@ export const EventBus = {
 function createDefaultState() {
   return {
     user: {
+      username: '',
       weight: 0,
       height: 0,
       age: 0,
@@ -63,6 +64,46 @@ export function freshDay() {
   };
 }
 
+async function syncToDatabase() {
+  const username = _state.user.username;
+  if (!username) return;
+  try {
+    const isLocal = window.location.port === '3000' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const endpoint = isLocal ? 'http://localhost:3001/api/user-data' : '/api/user-data';
+    
+    await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, state: _state })
+    });
+  } catch (e) {
+    console.warn('Database sync failed:', e);
+  }
+}
+
+export async function loadUserDataFromDB(username) {
+  try {
+    const isLocal = window.location.port === '3000' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const endpoint = isLocal ? `http://localhost:3001/api/user-data?username=${encodeURIComponent(username)}` : `/api/user-data?username=${encodeURIComponent(username)}`;
+    
+    const res = await fetch(endpoint);
+    const resData = await res.json();
+    if (resData.success && resData.data) {
+      _state = deepMerge(createDefaultState(), resData.data);
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (_state.today.date !== todayStr) {
+        _state.today = freshDay();
+        _state.today.date = todayStr;
+      }
+      localStorage.setItem('fitbuddy_state', JSON.stringify(_state));
+      EventBus.emit('state:changed', { path: '', value: _state });
+      console.log(`📡 Fetched user "${username}" from database!`);
+    }
+  } catch (e) {
+    console.warn('Failed to load user data from DB:', e);
+  }
+}
+
 // ──── State Singleton ────
 let _state = createDefaultState();
 
@@ -99,6 +140,7 @@ export const State = {
   save() {
     try {
       localStorage.setItem('fitbuddy_state', JSON.stringify(_state));
+      syncToDatabase();
     } catch (e) {
       console.warn('State save failed:', e);
     }
@@ -198,6 +240,11 @@ export function showToast(text, icon = '✨', duration = 2500) {
 async function boot() {
   // Load persisted state
   State.load();
+
+  // Load from DB if username exists to ensure sync
+  if (State.user.username) {
+    await loadUserDataFromDB(State.user.username);
+  }
 
   // ── Periodic Day Rollover Checker ──
   setInterval(() => {
@@ -316,6 +363,7 @@ function initSettings() {
   btn.addEventListener('click', () => {
     // Populate fields from State.user
     const user = State.user;
+    document.getElementById('settings-username').value = user.username || '';
     document.getElementById('settings-weight').value = user.weight || '';
     document.getElementById('settings-height').value = user.height || '';
     document.getElementById('settings-age').value = user.age || '';
