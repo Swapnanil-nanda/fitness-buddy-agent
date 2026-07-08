@@ -103,8 +103,9 @@ B) INGREDIENT/RECIPE MODE: If user lists ingredients:
    → Generate a simple recipe. Wrap in [RECIPE_START] and [RECIPE_END] with valid JSON format: {"name":"Recipe Name","steps":["step1","step2"],"calories":number,"protein":number,"carbs":number,"fat":number}
 C) STRESS/EXHAUSTION MODE: If mood is Stressed or Exhausted:
    → Recommend light stretching, deep breathing, or games in the Play tab instead of heavy workouts.
-D) WORKOUT/CHALLENGE MODE: If user asks for workouts:
-   → Suggest specific exercises. Wrap each exercise in a [CHALLENGE:Exercise name] tag to track it.`;
+D) WORKOUT/CHALLENGE MODE: If user asks for workouts or exercise suggestions:
+   → First ask them what type of exercise they prefer (e.g. cardio, strength, yoga, home workout).
+   → Once they specify, suggest exactly ONE proper exercise with sets/reps or duration, and wrap it in a [CHALLENGE:Exercise name] tag.`;
 
   // ── Compile Prompt using Chat Template format to prevent model hallucinations/run-on conversation ──
   let prompt = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|>\n`;

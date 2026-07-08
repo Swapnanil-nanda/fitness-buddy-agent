@@ -264,7 +264,7 @@ function startReflex() {
   if (instructEl) instructEl.textContent = 'Tap the targets as fast as you can!';
 
   // Create the play area
-  canvas.innerHTML = '<div class="reflex-area" style="position:relative; width:100%; height:100%;"></div>';
+  canvas.innerHTML = '<div class="reflex-area"></div>';
   const area = canvas.querySelector('.reflex-area');
 
   let score       = 0;

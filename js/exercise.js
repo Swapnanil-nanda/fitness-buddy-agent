@@ -3,6 +3,7 @@
    ============================================ */
 
 import { State, EventBus, showToast } from './app.js';
+import { generateResponse } from './watsonx.js';
 
 // ──── MET Values (Metabolic Equivalent of Task) ────
 // burn = MET × weight_kg × (time_min / 60)
@@ -140,10 +141,22 @@ export function initExercise() {
   const timeInput   = document.getElementById('exercise-time');
   const repsInput   = document.getElementById('exercise-reps');
   const warningEl   = document.getElementById('exercise-warning');
+  
+  const customGroup = document.getElementById('custom-exercise-group');
+  const customInput = document.getElementById('exercise-custom-name');
+
+  // ── Show custom name field when Other is selected ──
+  actSelect.addEventListener('change', () => {
+    if (actSelect.value === 'other') {
+      customGroup.classList.remove('hidden');
+      customInput.focus();
+    } else {
+      customGroup.classList.add('hidden');
+    }
+  });
 
   // ── Open modal (with optional stress warning) ──
   addBtn.addEventListener('click', () => {
-    // Show stress/exhaustion warning if applicable
     if (State.isStressedOrExhausted) {
       warningEl.classList.add('visible');
     } else {
@@ -167,9 +180,9 @@ export function initExercise() {
   });
 
   // ── Submit exercise ──
-  submitBtn.addEventListener('click', () => {
+  submitBtn.addEventListener('click', async () => {
     const activity = actSelect.value;
-    const displayName = actSelect.options[actSelect.selectedIndex]?.text || 'Exercise';
+    let displayName = actSelect.options[actSelect.selectedIndex]?.text || 'Exercise';
     const time = parseInt(timeInput.value, 10) || 0;
     const reps = parseInt(repsInput.value, 10) || 0;
 
@@ -185,8 +198,50 @@ export function initExercise() {
       return;
     }
 
-    // Calculate calorie burn
-    const burn = calculateBurn(activity, time, reps);
+    let burn = 0;
+
+    if (activity === 'other') {
+      const customName = customInput.value.trim();
+      if (!customName) {
+        showToast('Please enter a custom exercise name.', '⚠️');
+        return;
+      }
+      displayName = `✏️ ${customName}`;
+
+      // Disable button and show loading state
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Analyzing burn rate...';
+
+      try {
+        const weight = State.user.weight || 70;
+        const prompt = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+You are an expert exercise scientist. Estimate the MET (Metabolic Equivalent of Task) value or calories burned per minute for a person weighing ${weight}kg doing the exercise: "${customName}".
+Return ONLY a single number representing estimated calories burned per minute. Do not write any other letters, words, units or explanations. Just a single integer number.<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+Estimate for ${customName} done by ${weight}kg person.<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+
+`;
+        const result = await generateResponse(prompt, 50);
+        let calsPerMinute = 7; // moderate activity fallback
+        if (result.success) {
+          const match = result.text.match(/\d+/);
+          if (match) {
+            calsPerMinute = parseInt(match[0], 10);
+          }
+        }
+        burn = calsPerMinute * time;
+        showToast(`AI analyzed "${customName}": estimated ${calsPerMinute} kcal/min`, '🤖');
+      } catch (err) {
+        console.warn('AI exercise analysis failed:', err);
+        burn = 7 * time;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Log Exercise';
+      }
+    } else {
+      burn = calculateBurn(activity, time, reps);
+    }
 
     // Build exercise object
     const exercise = {
@@ -215,6 +270,8 @@ export function initExercise() {
 
     // Clear inputs and close modal
     actSelect.value  = '';
+    customInput.value = '';
+    customGroup.classList.add('hidden');
     timeInput.value  = '';
     repsInput.value  = '';
     modal.classList.remove('visible');

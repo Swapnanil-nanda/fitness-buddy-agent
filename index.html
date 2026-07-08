@@ -109,7 +109,7 @@
       <div class="chat-avatar">🤖</div>
       <div>
         <div class="chat-title">FitBuddy AI</div>
-        <div class="chat-status">Online · Granite-powered</div>
+        <div class="chat-status">Online</div>
       </div>
     </div>
 
@@ -279,12 +279,12 @@
       <input class="form-input" type="text" id="meal-name" placeholder="e.g. Grilled Chicken Salad">
     </div>
     <div class="form-group">
-      <label class="form-label" for="meal-calories">Estimated Calories (Auto-calculated)</label>
-      <input class="form-input" type="number" id="meal-calories" placeholder="Auto-calculated from ingredients" readonly>
+      <label class="form-label" for="meal-ingredients">Ingredients (required for calorie estimation)</label>
+      <textarea class="form-textarea" id="meal-ingredients" placeholder="Type items (e.g., 2 eggs, 150g chicken, rice, oil)"></textarea>
     </div>
     <div class="form-group">
-      <label class="form-label" for="meal-ingredients">Ingredients (Required to calculate calories)</label>
-      <textarea class="form-textarea" id="meal-ingredients" placeholder="Type items (e.g., 2 eggs, 150g chicken, rice, oil)"></textarea>
+      <label class="form-label" for="meal-calories">Estimated Calories (optional)</label>
+      <input class="form-input" type="number" id="meal-calories" placeholder="Leave blank to auto-calculate from ingredients">
     </div>
     <div class="btn-row">
       <button class="btn btn-secondary" id="meal-cancel">Cancel</button>
@@ -326,6 +326,10 @@
         <option value="weightlifting">🏋️ Weightlifting</option>
         <option value="other">✏️ Other</option>
       </select>
+    </div>
+    <div class="form-group hidden" id="custom-exercise-group">
+      <label class="form-label" for="exercise-custom-name">Custom Activity Name</label>
+      <input class="form-input" type="text" id="exercise-custom-name" placeholder="e.g. Rock climbing, Pilates, Badminton">
     </div>
     <div class="form-row">
       <div class="form-group">

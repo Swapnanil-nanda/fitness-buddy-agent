@@ -996,6 +996,17 @@ html, body {
   text-align: center;
 }
 
+#game-canvas {
+  width: 100%;
+  height: 350px;
+  position: relative;
+  margin: 0 auto;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--glass-border);
+}
+
 #game-timer {
   font-size: 48px;
   font-weight: 900;

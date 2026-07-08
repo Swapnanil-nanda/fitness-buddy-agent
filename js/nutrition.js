@@ -236,17 +236,23 @@ export function initNutrition() {
   submitBtn.addEventListener('click', () => {
     const name     = nameInput.value.trim();
     const ingredients = ingInput.value.trim();
-    const calories = parseInt(calInput.value, 10);
+    let calories = parseInt(calInput.value, 10);
 
     // Basic validation
-    if (!name || !ingredients) {
-      showToast('Please enter a meal name and ingredients list.', '⚠️');
+    if (!name) {
+      showToast('Please enter a meal name.', '⚠️');
       return;
     }
 
+    // Auto-calculate if calories is left blank
     if (isNaN(calories) || calories <= 0) {
-      showToast('Please enter valid ingredients to estimate calories.', '⚠️');
-      return;
+      if (ingredients) {
+        calories = parseAndEstimateCalories(ingredients);
+        showToast(`Estimated ${calories} kcal from ingredients list`, '🥗');
+      } else {
+        calories = 150; // Default fallback
+        showToast('No calories or ingredients entered. Defaulted to 150 kcal.', 'ℹ️');
+      }
     }
 
     // Cheat detection
