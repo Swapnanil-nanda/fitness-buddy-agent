@@ -49,7 +49,7 @@ export default async function handler(req, res) {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          model_id: 'ibm/granite-3-8b-instruct',
+          model_id: 'meta-llama/llama-3-3-70b-instruct',
           input: prompt,
           project_id: projectId,
           parameters: {

@@ -113,7 +113,7 @@ const apiServer = http.createServer(async (req, res) => {
             }
           },
           JSON.stringify({
-            model_id: 'ibm/granite-3-8b-instruct',
+            model_id: 'meta-llama/llama-3-3-70b-instruct',
             input: prompt,
             project_id: projectId,
             parameters: {

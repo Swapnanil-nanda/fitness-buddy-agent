@@ -19,7 +19,7 @@ const TOKEN_TTL_MS = 50 * 60 * 1000; // 50 minutes
 // ──── Constants ────
 const TIMEOUT_MS = 15_000; // 15-second hard timeout on every fetch
 const WATSONX_API_VERSION = '2025-02-06';
-const MODEL_ID = 'ibm/granite-3-8b-instruct';
+const MODEL_ID = 'meta-llama/llama-3-3-70b-instruct';
 
 // ──── Helpers ────
 
