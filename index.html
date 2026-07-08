@@ -336,39 +336,86 @@
 <!-- Settings Modal -->
 <div class="modal-overlay" id="settings-modal">
   <div class="modal">
-    <div class="modal-title">⚙️ Settings</div>
-    <div class="modal-subtitle">Configure your IBM watsonx.ai connection.</div>
-    <div class="form-group">
-      <label class="form-label" for="settings-api-key">IBM Cloud API Key</label>
-      <input class="form-input" type="password" id="settings-api-key" placeholder="Your API key">
+    <div class="modal-title">👤 User Settings</div>
+    <div class="modal-subtitle">Update your profile info and optional biometrics.</div>
+    
+    <div class="form-row" style="display: flex; gap: 10px;">
+      <div class="form-group" style="flex: 1;">
+        <label class="form-label" for="settings-weight">Weight (kg)</label>
+        <input class="form-input" type="number" id="settings-weight" step="0.1" placeholder="70">
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label class="form-label" for="settings-height">Height (cm)</label>
+        <input class="form-input" type="number" id="settings-height" placeholder="175">
+      </div>
     </div>
-    <div class="form-group">
-      <label class="form-label" for="settings-project-id">watsonx Project ID</label>
-      <input class="form-input" type="text" id="settings-project-id" placeholder="Your project ID">
+    
+    <div class="form-row" style="display: flex; gap: 10px;">
+      <div class="form-group" style="flex: 1;">
+        <label class="form-label" for="settings-age">Age</label>
+        <input class="form-input" type="number" id="settings-age" placeholder="25">
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label class="form-label" for="settings-gender">Gender</label>
+        <select class="form-select" id="settings-gender">
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
     </div>
-    <div class="form-group">
-      <label class="form-label" for="settings-region">Region</label>
-      <select class="form-select" id="settings-region">
-        <option value="us-south">US South (Dallas)</option>
-        <option value="eu-de">EU (Frankfurt)</option>
-        <option value="eu-gb">EU (London)</option>
-        <option value="jp-tok">AP (Tokyo)</option>
-      </select>
+
+    <div class="form-row" style="display: flex; gap: 10px;">
+      <div class="form-group" style="flex: 1;">
+        <label class="form-label" for="settings-goal">Goal</label>
+        <select class="form-select" id="settings-goal">
+          <option value="loss">Lose Weight</option>
+          <option value="maintain">Maintain Weight</option>
+          <option value="gain">Gain Weight</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label class="form-label" for="settings-activity">Activity Level</label>
+        <select class="form-select" id="settings-activity">
+          <option value="sedentary">Sedentary (1.2x)</option>
+          <option value="lightly">Lightly Active (1.375x)</option>
+          <option value="moderately">Moderately Active (1.55x)</option>
+          <option value="very">Very Active (1.725x)</option>
+          <option value="extra">Extra Active (1.9x)</option>
+        </select>
+      </div>
     </div>
-    <div class="form-group">
-      <label class="form-label" for="settings-mode">API Mode</label>
-      <select class="form-select" id="settings-mode">
-        <option value="proxy">Vercel Proxy (Production)</option>
-        <option value="local">Local Dev Proxy (localhost:3001)</option>
-        <option value="direct">Direct API (CORS issues possible)</option>
-      </select>
+
+    <div class="modal-subtitle" style="margin-top: 15px; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">Optional Biometrics (For Advanced AI suggestions)</div>
+    
+    <div class="form-row" style="display: flex; gap: 10px;">
+      <div class="form-group" style="flex: 1;">
+        <label class="form-label" for="settings-bodyfat">Body Fat %</label>
+        <input class="form-input" type="number" id="settings-bodyfat" min="2" max="60" step="0.1" placeholder="e.g. 15">
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label class="form-label" for="settings-neck">Neck (cm)</label>
+        <input class="form-input" type="number" id="settings-neck" step="0.1" placeholder="e.g. 38">
+      </div>
     </div>
+    
+    <div class="form-row" style="display: flex; gap: 10px;">
+      <div class="form-group" style="flex: 1;">
+        <label class="form-label" for="settings-waist">Waist (cm)</label>
+        <input class="form-input" type="number" id="settings-waist" step="0.1" placeholder="e.g. 80">
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label class="form-label" for="settings-hip">Hip (cm)</label>
+        <input class="form-input" type="number" id="settings-hip" step="0.1" placeholder="e.g. 90">
+      </div>
+    </div>
+
     <div class="btn-row">
       <button class="btn btn-secondary" id="settings-cancel">Cancel</button>
       <button class="btn btn-primary" id="settings-save">Save Settings</button>
     </div>
   </div>
 </div>
+
 
 <!-- Post-Game Modal -->
 <div class="modal-overlay" id="postgame-modal">

@@ -221,37 +221,10 @@ async function callDirect(apiKey, projectId, region, prompt, maxTokens) {
  * @returns {Promise<{success: boolean, text?: string, error?: string}>}
  */
 export async function generateResponse(prompt, maxTokens = 400) {
-  const { mode, apiKey, projectId, region } = State.settings;
-
-  // ── Route by mode ──
-  switch (mode) {
-
-    case 'proxy':
-      return callProxyOrLocal('/api/chat', prompt, maxTokens);
-
-    case 'local':
-      return callProxyOrLocal('http://localhost:3001/api/chat', prompt, maxTokens);
-
-    case 'direct': {
-      // Validate required credentials
-      if (!apiKey) {
-        return fail(
-          'No API key configured. Open Settings (⚙️ top-right) and enter your IBM Cloud API key, ' +
-          'watsonx project ID, and select your region to connect FitBuddy to watsonx.ai.'
-        );
-      }
-      if (!projectId) {
-        return fail(
-          'No watsonx Project ID configured. Open Settings (⚙️ top-right) and enter your project ID. ' +
-          'You can find it in your watsonx.ai project dashboard.'
-        );
-      }
-      return callDirect(apiKey, projectId, region || 'us-south', prompt, maxTokens);
-    }
-
-    default:
-      return fail(`Unknown API mode "${mode}". Please check your settings.`);
-  }
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const endpoint = isLocal ? 'http://localhost:3001/api/chat' : '/api/chat';
+  
+  return callProxyOrLocal(endpoint, prompt, maxTokens);
 }
 
 /**

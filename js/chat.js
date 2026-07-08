@@ -46,7 +46,7 @@ function bmiCategory(bmi) {
  * 4. Activate special behaviors based on detected intent
  */
 function compilePrompt(userMessage) {
-  const { weight, height, age, gender, bmi, goal, tdee, macros } = State.user;
+  const { weight, height, age, gender, bmi, goal, tdee, macros, bodyFat, neck, waist, hip, activity } = State.user;
   const { meals, exercises, water, sleep, mood } = State.today;
   const consumed  = State.caloriesConsumed;
   const burned    = State.caloriesBurned;
@@ -56,6 +56,19 @@ function compilePrompt(userMessage) {
 
   // Goal label for readability
   const goalLabel = { loss: 'Weight Loss', maintain: 'Maintain Weight', gain: 'Muscle Gain' }[goal] || goal;
+  const activityLabel = {
+    sedentary: 'Sedentary (little to no exercise)',
+    lightly: 'Lightly Active (light exercise 1-3 days/week)',
+    moderately: 'Moderately Active (moderate exercise 3-5 days/week)',
+    very: 'Very Active (hard exercise 6-7 days/week)',
+    extra: 'Extra Active (very hard exercise/physical job)'
+  }[activity] || activity || 'Lightly Active';
+
+  let biometricDetails = '';
+  if (bodyFat > 0) biometricDetails += `\n- Body Fat: ${bodyFat}%`;
+  if (neck > 0) biometricDetails += `\n- Neck Size: ${neck}cm`;
+  if (waist > 0) biometricDetails += `\n- Waist Size: ${waist}cm`;
+  if (hip > 0) biometricDetails += `\n- Hip Size: ${hip}cm`;
 
   // ── Core System Prompt ──
   const systemPrompt = `You are FitBuddy, an expert AI fitness & nutrition coach. You are warm, encouraging, and scientifically accurate.
@@ -63,8 +76,9 @@ function compilePrompt(userMessage) {
 USER PROFILE:
 - Weight: ${weight}kg, Height: ${height}cm, Age: ${age}, Gender: ${gender}
 - BMI: ${bmi} (${bmiCategory(bmi)}), Goal: ${goalLabel}
+- Activity Level: ${activityLabel}
 - Daily Calorie Target: ${tdee} kcal
-- Macro Targets: Protein ${macros.protein}g, Carbs ${macros.carbs}g, Fat ${macros.fat}g
+- Macro Targets: Protein ${macros.protein}g, Carbs ${macros.carbs}g, Fat ${macros.fat}g${biometricDetails}
 
 TODAY'S STATUS:
 - Calories consumed: ${consumed}/${tdee} kcal
@@ -81,6 +95,7 @@ FITNESS KNOWLEDGE BASE:
 - Recommended water: 8 glasses (2L) per day
 - Recommended sleep: 7-9 hours
 - Heart rate zones: 50-60% (fat burn), 60-70% (cardio), 70-85% (peak)
+- Body fat composition metrics: Navy Body Fat formula relies on height, neck, waist (and hips for females).
 
 RESPONSE RULES:
 1. Be concise (under 150 words) but helpful and specific.
@@ -88,7 +103,8 @@ RESPONSE RULES:
 3. When suggesting exercises, give specific sets/reps/duration.
 4. For nutrition advice, give specific portion sizes and calorie estimates.
 5. NEVER make up data the user hasn't provided.
-6. Use emoji sparingly for warmth but stay professional.
+6. Provide evidence-based, scientifically accurate guidance like a certified fitness and sports science expert.
+7. Maintain a warm, highly user-friendly, and verified supportive tone. Empathize and encourage.
 
 SPECIAL BEHAVIORS (detect and handle):
 
@@ -265,7 +281,10 @@ function addMessage(role, content, extra = '') {
   if (role === 'ai') {
     const label = document.createElement('div');
     label.className = 'ai-label';
-    label.textContent = 'FitBuddy AI';
+    label.style.display = 'flex';
+    label.style.alignItems = 'center';
+    label.style.gap = '4px';
+    label.innerHTML = `🛡️ FitBuddy AI <span style="display: inline-flex; align-items: center; justify-content: center; background: #0070f3; color: white; font-size: 8px; width: 12px; height: 12px; border-radius: 50%;" title="Verified Expert">✓</span> <span style="font-weight: normal; text-transform: none; opacity: 0.8; font-size: 9px; margin-left: 4px; color: var(--green);">Certified Coach</span>`;
     wrapper.appendChild(label);
   }
 

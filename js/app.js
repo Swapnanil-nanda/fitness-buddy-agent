@@ -29,16 +29,18 @@ function createDefaultState() {
       bmi: 0,
       goal: 'maintain', // 'loss' | 'maintain' | 'gain'
       tdee: 0,
-      macros: { protein: 0, carbs: 0, fat: 0 }
+      macros: { protein: 0, carbs: 0, fat: 0 },
+      bodyFat: 0,
+      neck: 0,
+      waist: 0,
+      hip: 0,
+      activity: 'lightly' // 'sedentary' | 'lightly' | 'moderately' | 'very' | 'extra'
     },
     onboarded: false,
     today: freshDay(),
     xp: { total: 0, level: 1, title: 'Beginner' },
     settings: {
-      apiKey: '',
-      projectId: '',
-      region: 'us-south',
-      mode: 'direct' // 'proxy' | 'local' | 'direct'
+      mode: 'proxy' // 'proxy' | 'local' | 'direct'
     },
     chatHistory: []
   };
@@ -239,6 +241,43 @@ async function boot() {
   console.log('🏋️ FitBuddy initialized');
 }
 
+// ──── Settings Recalculation Helpers ────
+const ACTIVITY_MULTIPLIERS = {
+  sedentary: 1.2,
+  lightly: 1.375,
+  moderately: 1.55,
+  very: 1.725,
+  extra: 1.9
+};
+const GOAL_ADJUSTMENTS = {
+  loss: -500,
+  maintain: 0,
+  gain: 300
+};
+
+export function calculateUserMetrics({ weight, height, age, gender, goal, activity }) {
+  const heightM = height / 100;
+  const bmi = heightM > 0 ? parseFloat((weight / (heightM * heightM)).toFixed(1)) : 0;
+  
+  let bmr;
+  if (gender === 'male') {
+    bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+  } else {
+    bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+  }
+  
+  const multiplier = ACTIVITY_MULTIPLIERS[activity] || 1.375;
+  const baseTDEE = bmr * multiplier;
+  const adjustment = GOAL_ADJUSTMENTS[goal] || 0;
+  const tdee = Math.round(baseTDEE + adjustment);
+  
+  const protein = Math.round((tdee * 0.30) / 4);
+  const carbs = Math.round((tdee * 0.40) / 4);
+  const fat = Math.round((tdee * 0.30) / 9);
+  
+  return { bmi, tdee, macros: { protein, carbs, fat } };
+}
+
 // ──── Settings Modal ────
 function initSettings() {
   const btn = document.getElementById('settings-btn');
@@ -246,17 +285,19 @@ function initSettings() {
   const cancel = document.getElementById('settings-cancel');
   const save = document.getElementById('settings-save');
 
-  const apiKeyInput = document.getElementById('settings-api-key');
-  const projectIdInput = document.getElementById('settings-project-id');
-  const regionSelect = document.getElementById('settings-region');
-  const modeSelect = document.getElementById('settings-mode');
-
   btn.addEventListener('click', () => {
-    // Populate fields
-    apiKeyInput.value = State.settings.apiKey;
-    projectIdInput.value = State.settings.projectId;
-    regionSelect.value = State.settings.region;
-    modeSelect.value = State.settings.mode;
+    // Populate fields from State.user
+    const user = State.user;
+    document.getElementById('settings-weight').value = user.weight || '';
+    document.getElementById('settings-height').value = user.height || '';
+    document.getElementById('settings-age').value = user.age || '';
+    document.getElementById('settings-gender').value = user.gender || 'male';
+    document.getElementById('settings-goal').value = user.goal || 'maintain';
+    document.getElementById('settings-activity').value = user.activity || 'lightly';
+    document.getElementById('settings-bodyfat').value = user.bodyFat || '';
+    document.getElementById('settings-neck').value = user.neck || '';
+    document.getElementById('settings-waist').value = user.waist || '';
+    document.getElementById('settings-hip').value = user.hip || '';
     modal.classList.add('visible');
   });
 
@@ -267,14 +308,36 @@ function initSettings() {
   });
 
   save.addEventListener('click', () => {
-    State.patch('settings', {
-      apiKey: apiKeyInput.value.trim(),
-      projectId: projectIdInput.value.trim(),
-      region: regionSelect.value,
-      mode: modeSelect.value
+    const weight = parseFloat(document.getElementById('settings-weight').value) || 0;
+    const height = parseFloat(document.getElementById('settings-height').value) || 0;
+    const age = parseInt(document.getElementById('settings-age').value, 10) || 0;
+    const gender = document.getElementById('settings-gender').value;
+    const goal = document.getElementById('settings-goal').value;
+    const activity = document.getElementById('settings-activity').value;
+    const bodyFat = parseFloat(document.getElementById('settings-bodyfat').value) || 0;
+    const neck = parseFloat(document.getElementById('settings-neck').value) || 0;
+    const waist = parseFloat(document.getElementById('settings-waist').value) || 0;
+    const hip = parseFloat(document.getElementById('settings-hip').value) || 0;
+
+    // Recalculate BMI, TDEE, Macros
+    const metrics = calculateUserMetrics({ weight, height, age, gender, goal, activity });
+
+    State.patch('user', {
+      weight,
+      height,
+      age,
+      gender,
+      goal,
+      activity,
+      bodyFat,
+      neck,
+      waist,
+      hip,
+      ...metrics
     });
+
     modal.classList.remove('visible');
-    showToast('Settings saved!', '⚙️');
+    showToast('Profile & Biometrics saved!', '👤');
   });
 }
 
