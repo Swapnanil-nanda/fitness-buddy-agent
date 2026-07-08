@@ -221,7 +221,7 @@ async function callDirect(apiKey, projectId, region, prompt, maxTokens) {
  * @returns {Promise<{success: boolean, text?: string, error?: string}>}
  */
 export async function generateResponse(prompt, maxTokens = 400) {
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const isLocal = window.location.port === '3000' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const endpoint = isLocal ? 'http://localhost:3001/api/chat' : '/api/chat';
   
   return callProxyOrLocal(endpoint, prompt, maxTokens);
