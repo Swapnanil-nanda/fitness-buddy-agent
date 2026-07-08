@@ -85,7 +85,9 @@ const apiServer = http.createServer(async (req, res) => {
 
   if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
 
-  if (req.method === 'POST' && req.url === '/api/chat') {
+  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = parsedUrl.pathname.replace(/\/$/, '');
+  if (req.method === 'POST' && pathname === '/api/chat') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
