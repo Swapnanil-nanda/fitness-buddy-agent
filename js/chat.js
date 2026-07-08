@@ -71,7 +71,7 @@ function compilePrompt(userMessage) {
   if (hip > 0) biometricDetails += `\n- Hip Size: ${hip}cm`;
 
   // ── Core System Prompt ──
-  const systemPrompt = `You are FitBuddy, an expert AI fitness & nutrition coach. You are warm, encouraging, and scientifically accurate.
+  const systemPrompt = `You are FitBuddy, a helpful and accurate AI fitness and nutrition coach. Answer the user's questions directly and accurately.
 
 USER PROFILE:
 - Weight: ${weight}kg, Height: ${height}cm, Age: ${age}, Gender: ${gender}
@@ -80,7 +80,7 @@ USER PROFILE:
 - Daily Calorie Target: ${tdee} kcal
 - Macro Targets: Protein ${macros.protein}g, Carbs ${macros.carbs}g, Fat ${macros.fat}g${biometricDetails}
 
-TODAY'S STATUS:
+TODAY'S PROGRESS:
 - Calories consumed: ${consumed}/${tdee} kcal
 - Calories burned: ${burned} kcal
 - Meals logged: ${mealCount} (Diet Quality: ${dietQual}%)
@@ -89,94 +89,37 @@ TODAY'S STATUS:
 - Mood: ${mood}
 - Exercises: ${exerciseCount}
 
-FITNESS KNOWLEDGE BASE:
-- 1 pound of fat ≈ 3500 calories deficit
-- Protein: 4 cal/g, Carbs: 4 cal/g, Fat: 9 cal/g
-- Recommended water: 8 glasses (2L) per day
-- Recommended sleep: 7-9 hours
-- Heart rate zones: 50-60% (fat burn), 60-70% (cardio), 70-85% (peak)
-- Body fat composition metrics: Navy Body Fat formula relies on height, neck, waist (and hips for females).
-
 RESPONSE RULES:
-1. Be concise (under 150 words) but helpful and specific.
-2. Use the user's actual data when giving advice (e.g. "You've eaten ${consumed} of your ${tdee} kcal target").
-3. When suggesting exercises, give specific sets/reps/duration.
-4. For nutrition advice, give specific portion sizes and calorie estimates.
-5. NEVER make up data the user hasn't provided.
-6. Provide evidence-based, scientifically accurate guidance like a certified fitness and sports science expert.
-7. Maintain a warm, highly user-friendly, and verified supportive tone. Empathize and encourage.
+1. Answer the user's question directly. Do not output anything irrelevant.
+2. Be concise and friendly. Keep responses under 150 words.
+3. If the user asks about workouts or nutrition, give specific suggestions.
+4. Do not simulate future dialog. Stop generating when your response is complete.
 
 SPECIAL BEHAVIORS (detect and handle):
 
-A) CRAVING DETECTION: If user mentions craving, wanting, or missing junk food/soda/sugar/sweets/fast food:
-   → Validate their feeling empathetically ("I totally get that craving!")
-   → Suggest a SPECIFIC healthy alternative with estimated calories
-   → Example: craving pizza → "Try a whole wheat tortilla with tomato sauce, mozzarella, and veggies (≈280 kcal)"
-
-B) INGREDIENT/RECIPE MODE: If user lists ingredients or says "I have [foods]":
-   → Generate a complete recipe with:
-   → Wrap in [RECIPE_START] and [RECIPE_END] tags
-   → Format: {"name":"Recipe Name","steps":["step1","step2"],"calories":number,"protein":number,"carbs":number,"fat":number}
-   → After the recipe JSON, add a YouTube search link
-
+A) CRAVING DETECTION: If user mentions craving junk food:
+   → Suggest a SPECIFIC healthy alternative with estimated calories.
+B) INGREDIENT/RECIPE MODE: If user lists ingredients:
+   → Generate a simple recipe. Wrap in [RECIPE_START] and [RECIPE_END] with valid JSON format: {"name":"Recipe Name","steps":["step1","step2"],"calories":number,"protein":number,"carbs":number,"fat":number}
 C) STRESS/EXHAUSTION MODE: If mood is Stressed or Exhausted:
-   → Do NOT suggest intense exercise
-   → Suggest: light stretching, breathing exercises, or playing a mini-game in the Play tab
-   → Be extra gentle and supportive
+   → Recommend light stretching, deep breathing, or games in the Play tab instead of heavy workouts.
+D) WORKOUT/CHALLENGE MODE: If user asks for workouts:
+   → Suggest specific exercises. Wrap each exercise in a [CHALLENGE:Exercise name] tag to track it.`;
 
-D) WORKOUT/CHALLENGE MODE: If user asks for workout suggestions or exercise ideas:
-   → Give specific exercises with sets/reps
-   → For each exercise, wrap in [CHALLENGE:Exercise description] tags to add to daily challenges
-   → Example: [CHALLENGE:Do 20 pushups] [CHALLENGE:Hold plank for 60 seconds]`;
+  // ── Compile Prompt using Chat Template format to prevent model hallucinations/run-on conversation ──
+  let prompt = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|>\n`;
 
-  // ── Intent-Based Prompt Augmentation ──
-  // We detect the user's likely intent and inject extra focused instructions
-  // so the AI model produces structured, actionable output.
-  let intentBoost = '';
-
-  if (INTENT.CRAVING.test(userMessage)) {
-    intentBoost += `\n\nIMPORTANT — CRAVING DETECTED: The user is craving junk food. You MUST:
-1. Validate the craving empathetically (don't shame them).
-2. Suggest exactly ONE specific healthy swap with calorie count.
-3. If they've eaten ${consumed} of ${tdee} kcal, tell them how the swap fits their remaining budget of ${Math.max(0, tdee - consumed)} kcal.`;
-  }
-
-  if (INTENT.INGREDIENTS.test(userMessage)) {
-    intentBoost += `\n\nIMPORTANT — RECIPE MODE DETECTED: The user is listing ingredients. You MUST:
-1. Create a recipe using ONLY the ingredients they mentioned (plus basic pantry staples like salt, pepper, oil).
-2. Wrap the recipe in [RECIPE_START] and [RECIPE_END] tags with valid JSON: {"name":"...","steps":["..."],"calories":N,"protein":N,"carbs":N,"fat":N}
-3. After [RECIPE_END], add: "🎥 Watch a tutorial: https://www.youtube.com/results?search_query=<recipe+name+recipe>"
-4. Keep the recipe simple and achievable in under 30 minutes.`;
-  }
-
-  if (INTENT.STRESS.test(userMessage) || State.isStressedOrExhausted) {
-    intentBoost += `\n\nIMPORTANT — USER IS STRESSED/EXHAUSTED: The user's mood is "${mood}". You MUST:
-1. Be extra gentle, supportive, and empathetic. Acknowledge how they feel.
-2. Do NOT suggest intense exercise (no HIIT, heavy lifting, long runs).
-3. Instead suggest: light stretching, 5-minute breathing exercises, a short walk, or playing a mini-game in the Play tab.
-4. If they haven't slept enough (${sleep}h < 7h), gently suggest sleep hygiene tips.`;
-  }
-
-  if (INTENT.WORKOUT.test(userMessage)) {
-    intentBoost += `\n\nIMPORTANT — WORKOUT MODE DETECTED: The user wants exercise suggestions. You MUST:
-1. Suggest 3-5 specific exercises with exact sets, reps, and rest periods.
-2. Wrap EACH exercise in a [CHALLENGE:description] tag so it becomes a trackable daily challenge.
-3. Tailor intensity to their goal (${goalLabel}) and current mood (${mood}).
-4. Estimate total calories burned for the routine.
-${State.isStressedOrExhausted ? '5. HOWEVER, the user is stressed/exhausted — keep it LOW intensity (yoga, stretching, light walk).' : ''}`;
-  }
-
-  // ── Conversation Context ──
-  // Include last 3 messages for continuity without overwhelming the context window.
+  // Add conversation history
   const history = (State.chatHistory || []).slice(-3);
-  let conversationCtx = '';
-  if (history.length > 0) {
-    conversationCtx = '\n\nRecent conversation:\n' +
-      history.map(m => `${m.role === 'user' ? 'User' : 'FitBuddy'}: ${m.content}`).join('\n');
-  }
+  history.forEach(msg => {
+    const roleId = msg.role === 'user' ? 'user' : 'assistant';
+    prompt += `<|start_header_id|>${roleId}<|end_header_id|>\n\n${msg.content}<|eot_id|>\n`;
+  });
 
-  // ── Final Assembled Prompt ──
-  return systemPrompt + intentBoost + conversationCtx + '\nUser: ' + userMessage + '\nFitBuddy:';
+  // Add the current user query
+  prompt += `<|start_header_id|>user<|end_header_id|>\n\n${userMessage}<|eot_id|>\n<|start_header_id|>assistant<|end_header_id|>\n\n`;
+
+  return prompt;
 }
 
 // ──── Response Parser ────
@@ -281,10 +224,7 @@ function addMessage(role, content, extra = '') {
   if (role === 'ai') {
     const label = document.createElement('div');
     label.className = 'ai-label';
-    label.style.display = 'flex';
-    label.style.alignItems = 'center';
-    label.style.gap = '4px';
-    label.innerHTML = `🛡️ FitBuddy AI <span style="display: inline-flex; align-items: center; justify-content: center; background: #0070f3; color: white; font-size: 8px; width: 12px; height: 12px; border-radius: 50%;" title="Verified Expert">✓</span> <span style="font-weight: normal; text-transform: none; opacity: 0.8; font-size: 9px; margin-left: 4px; color: var(--green);">Certified Coach</span>`;
+    label.textContent = 'FitBuddy AI';
     wrapper.appendChild(label);
   }
 

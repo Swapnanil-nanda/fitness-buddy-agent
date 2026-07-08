@@ -124,7 +124,7 @@ const apiServer = http.createServer(async (req, res) => {
               temperature: 0.7,
               top_p: 0.9,
               repetition_penalty: 1.1,
-              stop_sequences: ['\nUser:', '\nHuman:', '\n\n\n']
+              stop_sequences: ['<|eot_id|>', '<|start_header_id|>', '\nUser:', '\nHuman:', '\n\n\n']
             }
           })
         );
