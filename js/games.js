@@ -275,7 +275,7 @@ function startReflex() {
   if (timerEl) timerEl.textContent = '30s';
 
   // ── Miss sound if clicking background ──
-  area.addEventListener('click', () => {
+  area.addEventListener('pointerdown', () => {
     if (activeGame === 'reflex') sound.miss();
   });
 
@@ -308,7 +308,7 @@ function startReflex() {
     target.style.left = `${Math.random() * maxX}px`;
     target.style.top  = `${Math.random() * maxY}px`;
 
-    target.addEventListener('click', (e) => {
+    target.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       score++;
       sound.hit();
@@ -381,7 +381,7 @@ function startHamster() {
   if (scoreEl) scoreEl.textContent = 'Hits: 0 | Misses: 0';
   if (timerEl) timerEl.textContent = '30s';
 
-  grid.addEventListener('click', (e) => {
+  grid.addEventListener('pointerdown', (e) => {
     const hole = e.target.closest('.hamster-hole');
     if (!hole) return;
 
@@ -481,6 +481,7 @@ function startCatcher() {
   area.style.overflow = 'hidden';
   area.style.background = 'rgba(0, 0, 0, 0.2)';
   area.style.borderRadius = '12px';
+  area.style.touchAction = 'none'; // prevents scrolling page during touch drag
   canvas.appendChild(area);
 
   // Basket element at bottom
@@ -510,15 +511,8 @@ function startCatcher() {
     basket.style.left = `${x}px`;
   }
 
-  const onMouseMove = (e) => moveBasket(e.clientX);
-  const onTouchMove = (e) => {
-    if (e.touches && e.touches[0]) {
-      moveBasket(e.touches[0].clientX);
-    }
-  };
-
-  area.addEventListener('mousemove', onMouseMove);
-  area.addEventListener('touchmove', onTouchMove, { passive: true });
+  const onPointerMove = (e) => moveBasket(e.clientX);
+  area.addEventListener('pointermove', onPointerMove);
 
   const healthyItems = ['🍏', '🍌', '🥗', '🥛', '🥑', '🥦', '🍓'];
   const cheatItems   = ['🍕', '🍔', '🍟', '🍩', '🥤', '🍰', '🌭'];
@@ -636,8 +630,7 @@ function startCatcher() {
 
   gameCleanup = () => {
     cancelAnimationFrame(animationId);
-    area.removeEventListener('mousemove', onMouseMove);
-    area.removeEventListener('touchmove', onTouchMove);
+    area.removeEventListener('pointermove', onPointerMove);
     area.innerHTML = '';
   };
 }
