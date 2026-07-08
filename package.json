@@ -1,0 +1,12 @@
+{
+  "name": "fitness-buddy-agent",
+  "version": "1.0.0",
+  "description": "FitBuddy — Humanized AI Fitness Coach powered by IBM Granite",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["fitness", "ai", "ibm", "granite", "watsonx", "coach"],
+  "license": "MIT"
+}

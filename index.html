@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FitBuddy — Your Humanized AI Fitness Coach. Track biometrics, get AI-powered nutrition advice, play mini-games, and crush your fitness goals.">
+  <meta name="theme-color" content="#000000">
+  <title>FitBuddy — AI Fitness Coach</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏋️</text></svg>">
+</head>
+<body>
+
+<div id="app-container">
+
+  <!-- ═══════ XP Bar (Top) ═══════ -->
+  <section id="xp-bar-section">
+    <div id="level-badge">
+      <span class="level-icon" id="level-icon">🌱</span>
+      <span id="level-title">Beginner</span>
+    </div>
+    <div id="xp-track"><div id="xp-fill" style="width: 0%"></div></div>
+    <span id="xp-text">0 / 100 XP</span>
+    <button id="settings-btn" title="Settings">⚙️</button>
+  </section>
+
+  <!-- ═══════ Left Panel ═══════ -->
+  <aside id="left-panel" class="panel">
+
+    <!-- Trinity Rings -->
+    <div id="trinity-rings" class="glass-card">
+      <p class="section-title">Daily Progress</p>
+      <div class="rings-container">
+        <svg viewBox="0 0 200 200">
+          <!-- Kcal Ring (outer) -->
+          <circle class="ring-bg" cx="100" cy="100" r="90" stroke-width="7"/>
+          <circle class="ring-progress ring-kcal" id="ring-kcal" cx="100" cy="100" r="90" stroke-width="7"
+            stroke-dasharray="565.49" stroke-dashoffset="565.49"/>
+          <!-- Active Ring (middle) -->
+          <circle class="ring-bg" cx="100" cy="100" r="75" stroke-width="7"/>
+          <circle class="ring-progress ring-active" id="ring-active" cx="100" cy="100" r="75" stroke-width="7"
+            stroke-dasharray="471.24" stroke-dashoffset="471.24"/>
+          <!-- Diet Quality Ring (inner) -->
+          <circle class="ring-bg" cx="100" cy="100" r="60" stroke-width="7"/>
+          <circle class="ring-progress ring-diet" id="ring-diet" cx="100" cy="100" r="60" stroke-width="7"
+            stroke-dasharray="376.99" stroke-dashoffset="376.99"/>
+        </svg>
+        <div class="ring-labels">
+          <div class="primary-value" id="kcal-display">0</div>
+          <div class="primary-unit">kcal eaten</div>
+        </div>
+      </div>
+      <div class="rings-legend">
+        <span class="legend-item"><span class="legend-dot kcal"></span>Kcal</span>
+        <span class="legend-item"><span class="legend-dot active"></span>Active</span>
+        <span class="legend-item"><span class="legend-dot diet"></span>Diet</span>
+      </div>
+    </div>
+
+    <!-- Mood Selector -->
+    <div id="mood-section" class="glass-card">
+      <p class="section-title">How are you feeling?</p>
+      <div class="mood-grid">
+        <button class="mood-btn" data-mood="happy" title="Happy">😊<span class="mood-label">Happy</span></button>
+        <button class="mood-btn active" data-mood="neutral" title="Neutral">😐<span class="mood-label">Neutral</span></button>
+        <button class="mood-btn" data-mood="sad" title="Sad">😔<span class="mood-label">Sad</span></button>
+        <button class="mood-btn" data-mood="stressed" title="Stressed">😤<span class="mood-label">Stressed</span></button>
+        <button class="mood-btn" data-mood="exhausted" title="Exhausted">😴<span class="mood-label">Exhausted</span></button>
+      </div>
+    </div>
+
+    <!-- Hydration Tracker -->
+    <div id="hydration-section" class="glass-card">
+      <div class="hydration-header">
+        <p class="section-title" style="margin-bottom:0">Hydration</p>
+        <span class="hydration-count" id="hydration-count">0<span> / 8 glasses</span></span>
+      </div>
+      <div class="water-glasses" id="water-glasses">
+        <div class="water-glass" data-index="0">💧</div>
+        <div class="water-glass" data-index="1">💧</div>
+        <div class="water-glass" data-index="2">💧</div>
+        <div class="water-glass" data-index="3">💧</div>
+        <div class="water-glass" data-index="4">💧</div>
+        <div class="water-glass" data-index="5">💧</div>
+        <div class="water-glass" data-index="6">💧</div>
+        <div class="water-glass" data-index="7">💧</div>
+      </div>
+    </div>
+
+    <!-- Sleep Tracker -->
+    <div id="sleep-section" class="glass-card">
+      <p class="section-title">Last Night's Sleep</p>
+      <div class="sleep-display">
+        <span class="sleep-value" id="sleep-value">7<span> hrs</span></span>
+        <span class="sleep-quality good" id="sleep-quality">Good</span>
+      </div>
+      <input type="range" id="sleep-slider" min="0" max="12" step="0.5" value="7">
+    </div>
+
+  </aside>
+
+  <!-- ═══════ Center Panel: AI Chat ═══════ -->
+  <main id="center-panel">
+    <div id="chat-header">
+      <div class="chat-avatar">🤖</div>
+      <div>
+        <div class="chat-title">FitBuddy AI</div>
+        <div class="chat-status">Online · Granite-powered</div>
+      </div>
+    </div>
+
+    <div id="chat-messages">
+      <!-- Messages rendered dynamically -->
+    </div>
+
+    <div id="typing-indicator">
+      <span class="typing-dot"></span>
+      <span class="typing-dot"></span>
+      <span class="typing-dot"></span>
+    </div>
+
+    <div id="chat-input-bar">
+      <input type="text" id="chat-input" placeholder="Ask your AI coach anything..." autocomplete="off">
+      <button id="chat-send-btn" title="Send">➤</button>
+    </div>
+  </main>
+
+  <!-- ═══════ Right Panel: Tabs ═══════ -->
+  <aside id="right-panel">
+    <div id="tab-bar">
+      <button class="tab-btn active" data-tab="nutrition">🍎 Nutrition</button>
+      <button class="tab-btn" data-tab="exercise">🏃 Exercise</button>
+      <button class="tab-btn" data-tab="play">🎮 Play</button>
+    </div>
+
+    <div id="tab-content">
+
+      <!-- Nutrition Tab -->
+      <div id="nutrition-tab" class="tab-pane active">
+        <div class="summary-grid" id="nutrition-summary">
+          <div class="summary-card"><div class="value" id="nut-calories">0</div><div class="label">Calories</div></div>
+          <div class="summary-card"><div class="value" id="nut-protein">0g</div><div class="label">Protein</div></div>
+          <div class="summary-card"><div class="value" id="nut-carbs">0g</div><div class="label">Carbs</div></div>
+          <div class="summary-card"><div class="value" id="nut-fat">0g</div><div class="label">Fat</div></div>
+        </div>
+        <p class="section-title">Today's Meals</p>
+        <div class="log-list" id="meals-list">
+          <div class="empty-state" id="meals-empty">
+            <div class="empty-icon">🍽️</div>
+            <p>No meals logged yet. Tap + to add.</p>
+          </div>
+        </div>
+        <button class="fab nutrition" id="add-meal-btn" title="Log Meal">+</button>
+      </div>
+
+      <!-- Exercise Tab -->
+      <div id="exercise-tab" class="tab-pane">
+        <div class="summary-grid" id="exercise-summary">
+          <div class="summary-card"><div class="value" id="ex-burned">0</div><div class="label">Kcal Burned</div></div>
+          <div class="summary-card"><div class="value" id="ex-count">0</div><div class="label">Workouts</div></div>
+        </div>
+        <p class="section-title">Today's Exercises</p>
+        <div class="log-list" id="exercises-list">
+          <div class="empty-state" id="exercises-empty">
+            <div class="empty-icon">🏋️</div>
+            <p>No exercises logged yet. Tap + to add.</p>
+          </div>
+        </div>
+        <button class="fab exercise" id="add-exercise-btn" title="Log Exercise">+</button>
+      </div>
+
+      <!-- Play Tab -->
+      <div id="play-tab" class="tab-pane">
+        <div class="challenges-section">
+          <p class="section-title">Daily Challenges</p>
+          <div id="challenges-list">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+        <p class="section-title">Mini Games</p>
+        <div class="games-grid">
+          <div class="game-card" data-game="breather">
+            <div class="game-icon zen">🧘</div>
+            <div class="game-info">
+              <div class="game-name">Zen Breather</div>
+              <div class="game-desc">12-second guided breathing cycles</div>
+            </div>
+          </div>
+          <div class="game-card" data-game="reflex">
+            <div class="game-icon reflex">🎯</div>
+            <div class="game-info">
+              <div class="game-name">Reflex Dash</div>
+              <div class="game-desc">Tap spawning targets in 30 seconds</div>
+            </div>
+          </div>
+          <div class="game-card" data-game="hamster">
+            <div class="game-icon hamster">🐹</div>
+            <div class="game-info">
+              <div class="game-name">Hamster Smash</div>
+              <div class="game-desc">Whack-a-mole on a 3×3 grid</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+</div>
+
+<!-- ═══════ MODALS ═══════ -->
+
+<!-- Onboarding Modal -->
+<div class="modal-overlay visible" id="onboarding-modal">
+  <div class="modal">
+    <div class="text-center" style="margin-bottom: 20px">
+      <div style="font-size: 48px; margin-bottom: 8px">🏋️</div>
+      <div class="modal-title">Welcome to FitBuddy</div>
+      <div class="modal-subtitle">Let's personalize your experience in seconds.</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="onboard-gender">Gender</label>
+      <select class="form-select" id="onboard-gender">
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="onboard-weight">Weight (kg)</label>
+        <input class="form-input" type="number" id="onboard-weight" placeholder="70" min="20" max="300">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="onboard-height">Height (cm)</label>
+        <input class="form-input" type="number" id="onboard-height" placeholder="175" min="100" max="250">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="onboard-age">Age</label>
+      <input class="form-input" type="number" id="onboard-age" placeholder="25" min="10" max="120">
+    </div>
+    <div class="computed-display" id="bmi-display" style="display:none">
+      <span class="label">Your BMI</span>
+      <span>
+        <span class="value" id="bmi-value">—</span>
+        <span class="bmi-indicator normal" id="bmi-indicator">Normal</span>
+      </span>
+    </div>
+    <div class="computed-display" id="goal-display" style="display:none">
+      <span class="label">Suggested Goal</span>
+      <span class="value" id="goal-value" style="font-size:14px">—</span>
+    </div>
+    <div class="computed-display" id="tdee-display" style="display:none">
+      <span class="label">Daily Calories</span>
+      <span class="value" id="tdee-value">—</span>
+    </div>
+    <button class="btn btn-primary mt-16" id="onboard-submit" disabled>Get Started →</button>
+  </div>
+</div>
+
+<!-- Meal Log Modal -->
+<div class="modal-overlay" id="meal-modal">
+  <div class="modal">
+    <div class="modal-title">Log a Meal</div>
+    <div class="modal-subtitle">What did you eat?</div>
+    <div class="form-group">
+      <label class="form-label" for="meal-name">Food Name</label>
+      <input class="form-input" type="text" id="meal-name" placeholder="e.g. Grilled Chicken Salad">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="meal-calories">Estimated Calories</label>
+      <input class="form-input" type="number" id="meal-calories" placeholder="e.g. 450" min="0">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="meal-ingredients">Ingredients (optional)</label>
+      <textarea class="form-textarea" id="meal-ingredients" placeholder="e.g. chicken breast, lettuce, tomato, olive oil"></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="meal-cancel">Cancel</button>
+      <button class="btn btn-success" id="meal-submit">Log Meal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Exercise Log Modal -->
+<div class="modal-overlay" id="exercise-modal">
+  <div class="modal">
+    <div class="modal-title">Log Exercise</div>
+    <div class="modal-subtitle">What did you do?</div>
+    <div class="warning-banner" id="exercise-warning">
+      <strong>😮‍💨 Hey, take it easy!</strong>
+      You seem stressed or exhausted. Consider playing a mini-game or doing breathwork instead. You can still log, but rest might serve you better right now.
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="exercise-name">Activity</label>
+      <select class="form-select" id="exercise-name">
+        <option value="">Select an activity...</option>
+        <option value="running">🏃 Running</option>
+        <option value="walking">🚶 Walking</option>
+        <option value="cycling">🚴 Cycling</option>
+        <option value="swimming">🏊 Swimming</option>
+        <option value="yoga">🧘 Yoga</option>
+        <option value="pushups">💪 Push-ups</option>
+        <option value="squats">🦵 Squats</option>
+        <option value="plank">🧱 Plank</option>
+        <option value="jumping_jacks">⭐ Jumping Jacks</option>
+        <option value="burpees">🔥 Burpees</option>
+        <option value="sit_ups">🏋️ Sit-ups</option>
+        <option value="lunges">🦵 Lunges</option>
+        <option value="pull_ups">💪 Pull-ups</option>
+        <option value="jump_rope">🪢 Jump Rope</option>
+        <option value="hiit">⚡ HIIT</option>
+        <option value="stretching">🤸 Stretching</option>
+        <option value="dance">💃 Dance</option>
+        <option value="weightlifting">🏋️ Weightlifting</option>
+        <option value="other">✏️ Other</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="exercise-time">Time (min) — optional</label>
+        <input class="form-input" type="number" id="exercise-time" placeholder="e.g. 30" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="exercise-reps">Reps — optional</label>
+        <input class="form-input" type="number" id="exercise-reps" placeholder="e.g. 50" min="0">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="exercise-cancel">Cancel</button>
+      <button class="btn btn-danger" id="exercise-submit">Log Exercise</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <div class="modal-title">⚙️ Settings</div>
+    <div class="modal-subtitle">Configure your IBM watsonx.ai connection.</div>
+    <div class="form-group">
+      <label class="form-label" for="settings-api-key">IBM Cloud API Key</label>
+      <input class="form-input" type="password" id="settings-api-key" placeholder="Your API key">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="settings-project-id">watsonx Project ID</label>
+      <input class="form-input" type="text" id="settings-project-id" placeholder="Your project ID">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="settings-region">Region</label>
+      <select class="form-select" id="settings-region">
+        <option value="us-south">US South (Dallas)</option>
+        <option value="eu-de">EU (Frankfurt)</option>
+        <option value="eu-gb">EU (London)</option>
+        <option value="jp-tok">AP (Tokyo)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="settings-mode">API Mode</label>
+      <select class="form-select" id="settings-mode">
+        <option value="proxy">Vercel Proxy (Production)</option>
+        <option value="local">Local Dev Proxy (localhost:3001)</option>
+        <option value="direct">Direct API (CORS issues possible)</option>
+      </select>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="settings-cancel">Cancel</button>
+      <button class="btn btn-primary" id="settings-save">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- Post-Game Modal -->
+<div class="modal-overlay" id="postgame-modal">
+  <div class="modal text-center">
+    <div class="postgame-emoji">🎉</div>
+    <div class="modal-title" id="postgame-title">Great Game!</div>
+    <div class="modal-subtitle" id="postgame-subtitle">Are you feeling better now?</div>
+    <div class="btn-row mt-16">
+      <button class="btn btn-secondary" id="postgame-no">Not yet 😔</button>
+      <button class="btn btn-success" id="postgame-yes">Yes! 😊</button>
+    </div>
+  </div>
+</div>
+
+<!-- Game Overlay -->
+<div id="game-overlay">
+  <button id="game-close-btn" title="Exit Game">✕</button>
+  <div id="game-area">
+    <div id="game-timer"></div>
+    <div id="game-score"></div>
+    <div id="game-canvas"></div>
+    <div id="game-instruction" style="color: var(--text-3); font-size: 13px; margin-top: 16px;"></div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toast-icon">✨</span>
+  <span id="toast-text">Notification</span>
+</div>
+
+<!-- ═══════ Scripts ═══════ -->
+<script type="module" src="js/app.js"></script>
+
+</body>
+</html>
