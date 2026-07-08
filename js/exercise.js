@@ -13,54 +13,22 @@ const MET_TABLE = {
   cycling: 7.5,
   swimming: 8.0,
   yoga: 3.0,
-  pushups: 8.0,
-  squats: 5.5,
-  plank: 4.0,
-  jumping_jacks: 8.0,
-  burpees: 10.0,
-  sit_ups: 4.0,
-  lunges: 5.0,
-  pull_ups: 8.0,
-  jump_rope: 12.0,
-  hiit: 10.0,
-  stretching: 2.5,
-  dance: 6.5,
   weightlifting: 6.0,
   other: 5.0
 };
 
-// ──── Calories per Rep (for rep-based exercises) ────
-const REPS_CALORIES = {
-  pushups: 0.5,
-  squats: 0.6,
-  sit_ups: 0.3,
-  lunges: 0.5,
-  pull_ups: 1.0,
-  burpees: 1.5,
-  jumping_jacks: 0.2
-};
-
 /**
- * Calculate calories burned for an exercise.
- * Priority: time-based (if time > 0) → reps-based → 0
+ * Calculate calories burned for an exercise based on MET and duration.
  * @param {string} activity – Activity key from MET_TABLE
- * @param {number} time     – Duration in minutes (0 or NaN = not provided)
- * @param {number} reps     – Number of reps (0 or NaN = not provided)
+ * @param {number} time     – Duration in minutes
  * @returns {number} Rounded calorie burn
  */
-function calculateBurn(activity, time, reps) {
+function calculateBurn(activity, time) {
   const weight = State.user.weight || 70; // fallback 70 kg
   const met = MET_TABLE[activity] || MET_TABLE.other;
 
-  // Time-based takes priority
   if (time && time > 0) {
     return Math.round(met * weight * (time / 60));
-  }
-
-  // Reps-based fallback
-  if (reps && reps > 0) {
-    const perRep = REPS_CALORIES[activity] || 0.5;
-    return Math.round(reps * perRep);
   }
 
   return 0;
@@ -240,7 +208,7 @@ Estimate for ${customName} done by ${weight}kg person.<|eot_id|><|start_header_i
         submitBtn.textContent = 'Log Exercise';
       }
     } else {
-      burn = calculateBurn(activity, time, reps);
+      burn = calculateBurn(activity, time);
     }
 
     // Build exercise object
