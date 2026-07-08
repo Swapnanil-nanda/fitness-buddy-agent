@@ -80,8 +80,12 @@ function renderChallenges() {
   container.innerHTML = challenges.map(ch => `
     <div class="challenge-card${ch.completed ? ' completed' : ''}" data-id="${ch.id}">
       <span class="challenge-check">${ch.completed ? '✓' : ''}</span>
-      <span class="challenge-text">${ch.text}</span>
-      <span class="challenge-xp">+${ch.xp} XP</span>
+      <span class="challenge-text" style="flex: 1; padding: 0 8px;">${ch.text}</span>
+      <span class="challenge-xp" style="margin-right: 8px;">+${ch.xp} XP</span>
+      <div class="challenge-actions" style="display: flex; gap: 4px;">
+        <button class="challenge-edit-btn" title="Edit challenge" style="background: transparent; border: none; cursor: pointer; padding: 4px; font-size: 14px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));">✏️</button>
+        <button class="challenge-delete-btn" title="Delete challenge" style="background: transparent; border: none; cursor: pointer; padding: 4px; font-size: 14px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));">🗑️</button>
+      </div>
     </div>
   `).join('');
 }
@@ -222,6 +226,41 @@ function onChallengeAdded({ challenge }) {
   showToast(`New challenge: ${newChallenge.text}`, '🎯');
 }
 
+function editChallenge(id) {
+  const challenges = State.today.challenges || [];
+  const challenge = challenges.find(c => c.id === id);
+  if (!challenge) return;
+  
+  const newText = prompt('✏️ Edit Challenge:', challenge.text);
+  if (newText === null) return;
+  
+  const trimmed = newText.trim();
+  if (!trimmed) {
+    showToast('Challenge cannot be empty.', '⚠️');
+    return;
+  }
+  
+  challenge.text = trimmed;
+  State.save();
+  renderChallenges();
+  showToast('Challenge updated!', '📝');
+}
+
+function deleteChallenge(id) {
+  const challenges = State.today.challenges || [];
+  const index = challenges.findIndex(c => c.id === id);
+  if (index === -1) return;
+  
+  const challenge = challenges[index];
+  const confirmDelete = confirm(`🗑️ Delete challenge "${challenge.text}"?`);
+  if (!confirmDelete) return;
+  
+  challenges.splice(index, 1);
+  State.save();
+  renderChallenges();
+  showToast('Challenge deleted.', '🗑️');
+}
+
 // ──── Click Delegation for Challenge Cards ────
 
 function initChallengeClicks() {
@@ -232,7 +271,21 @@ function initChallengeClicks() {
     const card = e.target.closest('.challenge-card');
     if (!card) return;
     const id = card.dataset.id;
-    if (id) toggleChallenge(id);
+    if (!id) return;
+
+    if (e.target.closest('.challenge-edit-btn')) {
+      e.stopPropagation();
+      editChallenge(id);
+      return;
+    }
+
+    if (e.target.closest('.challenge-delete-btn')) {
+      e.stopPropagation();
+      deleteChallenge(id);
+      return;
+    }
+
+    toggleChallenge(id);
   });
 }
 

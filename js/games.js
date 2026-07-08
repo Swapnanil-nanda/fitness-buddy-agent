@@ -124,6 +124,9 @@ function stopGame() {
   const instruction = $('game-instruction');
   if (instruction) instruction.textContent = '';
 
+  const postgameModal = $('postgame-modal');
+  if (postgameModal) postgameModal.classList.remove('visible');
+
   closeOverlay();
 }
 
