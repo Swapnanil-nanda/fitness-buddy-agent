@@ -32,12 +32,12 @@ html, body {
 :root {
   --bg: #000000;
   --bg-elevated: #0a0a0a;
-  --glass: rgba(255, 255, 255, 0.04);
-  --glass-hover: rgba(255, 255, 255, 0.07);
-  --glass-active: rgba(255, 255, 255, 0.10);
-  --glass-border: rgba(255, 255, 255, 0.02);
-  --glass-border-light: rgba(255, 255, 255, 0.06);
-  --glass-border-focus: rgba(255, 255, 255, 0.12);
+  --glass: rgba(255, 255, 255, 0.03);
+  --glass-hover: rgba(255, 255, 255, 0.06);
+  --glass-active: rgba(255, 255, 255, 0.09);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-light: rgba(255, 255, 255, 0.14);
+  --glass-border-focus: rgba(255, 255, 255, 0.22);
   --text-1: #ffffff;
   --text-2: rgba(255, 255, 255, 0.55);
   --text-3: rgba(255, 255, 255, 0.30);
@@ -81,7 +81,7 @@ html, body {
     "left center right";
   height: 100vh;
   gap: 1px;
-  background: var(--bg);
+  background: transparent;
   overflow: hidden;
 }
 
@@ -175,7 +175,9 @@ html, body {
 
 #left-panel {
   grid-area: left;
-  background: var(--bg);
+  background: rgba(10, 10, 12, 0.45);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
   border-right: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
@@ -184,7 +186,9 @@ html, body {
 
 #center-panel {
   grid-area: center;
-  background: var(--bg-elevated);
+  background: rgba(0, 0, 0, 0.15);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -192,7 +196,9 @@ html, body {
 
 #right-panel {
   grid-area: right;
-  background: var(--bg);
+  background: rgba(10, 10, 12, 0.45);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
   border-left: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
@@ -1445,3 +1451,51 @@ html, body {
 .mt-16 { margin-top: 16px; }
 .mb-8 { margin-bottom: 8px; }
 .gap-8 { gap: 8px; }
+
+/* ──── Animated Background Blobs ──── */
+.bg-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  z-index: -1;
+  opacity: 0.15;
+  pointer-events: none;
+  animation: float-blob 25s infinite alternate ease-in-out;
+}
+.blob-1 {
+  width: 400px;
+  height: 400px;
+  background: var(--blue);
+  top: -10%;
+  left: 20%;
+}
+.blob-2 {
+  width: 500px;
+  height: 500px;
+  background: var(--purple);
+  bottom: -10%;
+  right: 10%;
+  animation-duration: 35s;
+  animation-delay: -5s;
+}
+.blob-3 {
+  width: 300px;
+  height: 300px;
+  background: var(--green);
+  top: 40%;
+  left: 50%;
+  animation-duration: 30s;
+  animation-delay: -10s;
+}
+
+@keyframes float-blob {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(80px, 50px) scale(1.1);
+  }
+  100% {
+    transform: translate(-50px, 80px) scale(0.9);
+  }
+}

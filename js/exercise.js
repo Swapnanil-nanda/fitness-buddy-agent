@@ -179,9 +179,9 @@ export function initExercise() {
       return;
     }
 
-    // At least time or reps should be provided
-    if (time <= 0 && reps <= 0) {
-      showToast('Please enter time or reps.', '⚠️');
+    // Validation — time is mandatory
+    if (isNaN(time) || time <= 0) {
+      showToast('Please enter a valid exercise duration in minutes.', '⚠️');
       return;
     }
 

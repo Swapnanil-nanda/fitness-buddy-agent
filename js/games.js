@@ -1,5 +1,6 @@
 /* ============================================
-   FitBuddy — Mini-Games: Breather, Reflex, Hamster
+   FitBuddy — Mini-Games: Breather, Reflex, Hamster, Catcher
+   With Web Audio API Retro Sound Effects
    ============================================ */
 
 import { State, EventBus, showToast } from './app.js';
@@ -8,7 +9,7 @@ import { State, EventBus, showToast } from './app.js';
 const $ = (id) => document.getElementById(id);
 
 // ──── Active Game State ────
-let activeGame   = null;   // 'breather' | 'reflex' | 'hamster' | null
+let activeGame   = null;   // 'breather' | 'reflex' | 'hamster' | 'catcher' | null
 let gameTimers   = [];     // All setTimeout / setInterval IDs for cleanup
 let gameCleanup  = null;   // Custom cleanup callback for current game
 
@@ -20,6 +21,81 @@ function clearAllTimers() {
   gameTimers.forEach(id => { clearTimeout(id); clearInterval(id); });
   gameTimers = [];
 }
+
+// ──── Web Audio API Synthesizer (Zero-dependency Sound Effects) ────
+let audioCtx = null;
+
+function getAudioContext() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+
+/**
+ * Play a synthesizer note.
+ * @param {number} freq - frequency in Hz
+ * @param {string} type - oscillator type ('sine', 'square', 'sawtooth', 'triangle')
+ * @param {number} duration - duration in seconds
+ * @param {number} volume - volume multiplier
+ */
+function playTone(freq, type, duration, volume = 0.1) {
+  try {
+    const ctx = getAudioContext();
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    
+    gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+    // Linear decay to prevent clicking sounds
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+    
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch (e) {
+    console.warn('Audio Context failed to play tone:', e);
+  }
+}
+
+// Sound effects:
+const sound = {
+  click: () => playTone(600, 'sine', 0.08, 0.08),
+  hit: () => {
+    // Pleasant high-pitched chime
+    playTone(880, 'triangle', 0.12, 0.12);
+  },
+  miss: () => {
+    // Low-pitched buzz
+    playTone(150, 'sawtooth', 0.2, 0.08);
+  },
+  levelUp: () => {
+    // Happy upward arpeggio
+    setTimeout(() => playTone(523.25, 'sine', 0.15, 0.12), 0); // C5
+    setTimeout(() => playTone(659.25, 'sine', 0.15, 0.12), 80); // E5
+    setTimeout(() => playTone(783.99, 'sine', 0.15, 0.12), 160); // G5
+    setTimeout(() => playTone(1046.50, 'sine', 0.25, 0.15), 240); // C6
+  },
+  start: () => {
+    // Game start sound
+    playTone(440, 'triangle', 0.08, 0.08);
+    setTimeout(() => playTone(554.37, 'triangle', 0.08, 0.08), 80);
+    setTimeout(() => playTone(659.25, 'triangle', 0.2, 0.12), 160);
+  },
+  gameOver: () => {
+    // Downward sad sound
+    playTone(392, 'sawtooth', 0.15, 0.08);
+    setTimeout(() => playTone(349.23, 'sawtooth', 0.15, 0.08), 120);
+    setTimeout(() => playTone(311.13, 'sawtooth', 0.35, 0.12), 240);
+  }
+};
 
 // ──── Overlay Management ────
 
@@ -68,7 +144,7 @@ function onGameComplete(gameName, score) {
   const subtitle = $('postgame-subtitle');
 
   if (title) title.textContent = `Great ${gameName}!`;
-  if (subtitle) subtitle.textContent = 'Are you feeling better now?';
+  if (subtitle) subtitle.textContent = `You scored ${score}! Are you feeling better now?`;
   if (modal) modal.classList.add('visible');
 }
 
@@ -109,14 +185,15 @@ function initPostgameModal() {
 
 function startBreather() {
   activeGame = 'breather';
+  sound.start();
   openOverlay();
 
-  const canvas      = $('game-canvas');
-  const timerEl     = $('game-timer');
-  const scoreEl     = $('game-score');
-  const instructEl  = $('game-instruction');
+  const canvas   = $('game-canvas');
+  const timerEl  = $('game-timer');
+  const scoreEl  = $('game-score');
+  const timerLoc = $('game-instruction');
 
-  if (instructEl) instructEl.textContent = 'Follow the circle. Breathe naturally.';
+  if (timerLoc) timerLoc.textContent = 'Follow the circle. Breathe naturally.';
   if (scoreEl)    scoreEl.textContent    = 'Breathe deeply...';
 
   // Create the breathing circle
@@ -138,6 +215,7 @@ function startBreather() {
   let currentPhase = 0;
 
   function setPhase(phaseIndex) {
+    sound.click();
     // Remove all phase classes
     circle.classList.remove('inhale', 'hold', 'exhale');
     // Add current phase class
@@ -148,15 +226,14 @@ function startBreather() {
   function advancePhase() {
     currentPhase++;
     if (currentPhase >= 3) {
-      // Completed one full cycle
       currentPhase = 0;
       currentCycle++;
       if (timerEl) timerEl.textContent = `Cycle ${currentCycle} / ${TOTAL_CYCLES}`;
 
       if (currentCycle >= TOTAL_CYCLES) {
-        // Game complete
         text.textContent = '🙏 Namaste';
         circle.classList.remove('inhale', 'hold', 'exhale');
+        sound.levelUp();
         onGameComplete('Zen Breather', TOTAL_CYCLES);
         return;
       }
@@ -164,11 +241,9 @@ function startBreather() {
     setPhase(currentPhase);
   }
 
-  // Start first phase
   if (timerEl) timerEl.textContent = `Cycle 0 / ${TOTAL_CYCLES}`;
   setPhase(0);
 
-  // Advance every 4 seconds
   addTimer(setInterval(advancePhase, PHASE_MS));
 }
 
@@ -178,6 +253,7 @@ function startBreather() {
 
 function startReflex() {
   activeGame = 'reflex';
+  sound.start();
   openOverlay();
 
   const canvas      = $('game-canvas');
@@ -188,56 +264,56 @@ function startReflex() {
   if (instructEl) instructEl.textContent = 'Tap the targets as fast as you can!';
 
   // Create the play area
-  canvas.innerHTML = '<div class="reflex-area"></div>';
+  canvas.innerHTML = '<div class="reflex-area" style="position:relative; width:100%; height:100%;"></div>';
   const area = canvas.querySelector('.reflex-area');
 
   let score       = 0;
   let timeLeft    = 30;
-  let spawnRate   = 1200; // ms between spawns, shrinks over time
+  let spawnRate   = 1200;
 
   if (scoreEl) scoreEl.textContent = 'Score: 0';
   if (timerEl) timerEl.textContent = '30s';
 
-  // ── Countdown ──
+  // ── Miss sound if clicking background ──
+  area.addEventListener('click', () => {
+    if (activeGame === 'reflex') sound.miss();
+  });
+
   const countdown = addTimer(setInterval(() => {
     timeLeft--;
     if (timerEl) timerEl.textContent = `${timeLeft}s`;
 
-    // Speed up spawns as time passes
     spawnRate = Math.max(800, 1200 - (30 - timeLeft) * 13);
 
     if (timeLeft <= 0) {
+      sound.gameOver();
       onGameComplete('Reflex Dash', score);
     }
   }, 1000));
 
-  // ── Spawn Targets ──
   function spawnTarget() {
     if (activeGame !== 'reflex') return;
 
     const target = document.createElement('div');
     target.classList.add('reflex-target');
 
-    // Size shrinks from 50px → 35px over 30s
     const elapsed  = 30 - timeLeft;
     const size     = Math.max(35, 50 - elapsed * 0.5);
     target.style.width  = `${size}px`;
     target.style.height = `${size}px`;
 
-    // Random position within the area (leave margin for target size)
     const areaRect = area.getBoundingClientRect();
     const maxX     = Math.max(0, areaRect.width - size);
     const maxY     = Math.max(0, areaRect.height - size);
     target.style.left = `${Math.random() * maxX}px`;
     target.style.top  = `${Math.random() * maxY}px`;
 
-    // Click handler → score
     target.addEventListener('click', (e) => {
       e.stopPropagation();
       score++;
+      sound.hit();
       if (scoreEl) scoreEl.textContent = `Score: ${score}`;
 
-      // Pop animation at click position
       const pop = document.createElement('div');
       pop.classList.add('reflex-pop');
       pop.style.left = target.style.left;
@@ -251,21 +327,17 @@ function startReflex() {
 
     area.appendChild(target);
 
-    // Auto-remove missed targets after 1.5s
     addTimer(setTimeout(() => {
       if (target.parentNode) target.remove();
     }, 1500));
 
-    // Schedule next spawn (variable rate)
     if (activeGame === 'reflex' && timeLeft > 0) {
       addTimer(setTimeout(spawnTarget, spawnRate));
     }
   }
 
-  // Kick off first spawn
   addTimer(setTimeout(spawnTarget, 500));
 
-  // Cleanup: remove leftover targets
   gameCleanup = () => {
     if (area) area.innerHTML = '';
   };
@@ -277,6 +349,7 @@ function startReflex() {
 
 function startHamster() {
   activeGame = 'hamster';
+  sound.start();
   openOverlay();
 
   const canvas      = $('game-canvas');
@@ -286,7 +359,6 @@ function startHamster() {
 
   if (instructEl) instructEl.textContent = 'Smash the hamsters! 🔨';
 
-  // Build the 3×3 grid
   canvas.innerHTML = '<div class="hamster-grid"></div>';
   const grid = canvas.querySelector('.hamster-grid');
 
@@ -304,62 +376,56 @@ function startHamster() {
   let combo       = 0;
   let timeLeft    = 30;
   let activeHole  = null;
-  let popRate     = 1200; // ms between hamster pops, speeds up
+  let popRate     = 1200;
 
   if (scoreEl) scoreEl.textContent = 'Hits: 0 | Misses: 0';
   if (timerEl) timerEl.textContent = '30s';
 
-  // ── Click handler (delegated on grid) ──
   grid.addEventListener('click', (e) => {
     const hole = e.target.closest('.hamster-hole');
     if (!hole) return;
 
     if (hole.classList.contains('active')) {
-      // HIT!
       hits++;
       combo++;
+      sound.hit();
       hole.classList.remove('active');
       hole.textContent = '';
       hole.classList.add('hit-flash');
       setTimeout(() => hole.classList.remove('hit-flash'), 300);
 
-      // Combo system: 3+ consecutive hits
       if (combo >= 3) {
         showToast(`🔥 ${combo}x Combo!`, '🐹', 1500);
       }
     } else {
-      // MISS
       misses++;
       combo = 0;
+      sound.miss();
     }
 
     if (scoreEl) scoreEl.textContent = `Hits: ${hits} | Misses: ${misses}`;
   });
 
-  // ── Countdown ──
   const countdown = addTimer(setInterval(() => {
     timeLeft--;
     if (timerEl) timerEl.textContent = `${timeLeft}s`;
 
-    // Speed up hamster pops over time
     popRate = Math.max(700, 1200 - (30 - timeLeft) * 17);
 
     if (timeLeft <= 0) {
+      sound.gameOver();
       onGameComplete('Hamster Smash', hits);
     }
   }, 1000));
 
-  // ── Pop Hamsters ──
   function popHamster() {
     if (activeGame !== 'hamster') return;
 
-    // Clear previous hamster
     if (activeHole !== null) {
       holes[activeHole].classList.remove('active');
       holes[activeHole].textContent = '';
     }
 
-    // Pick a random hole (avoid same hole twice)
     let next;
     do { next = Math.floor(Math.random() * 9); } while (next === activeHole);
     activeHole = next;
@@ -367,29 +433,212 @@ function startHamster() {
     holes[activeHole].classList.add('active');
     holes[activeHole].textContent = '🐹';
 
-    // Auto-hide hamster after pop duration
-    const hideDelay = popRate; // matches spawn rate
+    const hideDelay = popRate;
     addTimer(setTimeout(() => {
       if (activeGame === 'hamster' && holes[activeHole]) {
         holes[activeHole].classList.remove('active');
         holes[activeHole].textContent = '';
-        // Missed this hamster → break combo
         combo = 0;
       }
     }, hideDelay));
 
-    // Schedule next pop
     if (activeGame === 'hamster' && timeLeft > 0) {
       addTimer(setTimeout(popHamster, popRate));
     }
   }
 
-  // Start popping after short delay
   addTimer(setTimeout(popHamster, 600));
 
-  // Cleanup
   gameCleanup = () => {
     grid.innerHTML = '';
+  };
+}
+
+// ═══════════════════════════════════════════
+//  GAME 4: Food Catcher
+// ═══════════════════════════════════════════
+
+function startCatcher() {
+  activeGame = 'catcher';
+  sound.start();
+  openOverlay();
+
+  const canvas = $('game-canvas');
+  const timer  = $('game-timer');
+  const scoreEl = $('game-score');
+  const instruction = $('game-instruction');
+
+  if (instruction) instruction.textContent = 'Move mouse or drag to catch healthy foods 🍏, avoid cheat foods 🍔!';
+  if (scoreEl) scoreEl.textContent = 'Score: 0';
+  if (timer) timer.textContent = '30s';
+
+  // Setup game area inside canvas
+  const area = document.createElement('div');
+  area.className = 'catcher-area';
+  area.style.position = 'relative';
+  area.style.width = '100%';
+  area.style.height = '100%';
+  area.style.overflow = 'hidden';
+  area.style.background = 'rgba(0, 0, 0, 0.2)';
+  area.style.borderRadius = '12px';
+  canvas.appendChild(area);
+
+  // Basket element at bottom
+  const basket = document.createElement('div');
+  basket.className = 'basket';
+  basket.textContent = '🧺';
+  basket.style.position = 'absolute';
+  basket.style.bottom = '15px';
+  basket.style.left = '50%';
+  basket.style.transform = 'translateX(-50%)';
+  basket.style.fontSize = '35px';
+  basket.style.width = '60px';
+  basket.style.height = '40px';
+  basket.style.textAlign = 'center';
+  basket.style.cursor = 'none';
+  area.appendChild(basket);
+
+  let score = 0;
+  let timeLeft = 30;
+
+  // Move basket with mouse or touch
+  function moveBasket(clientX) {
+    const rect = area.getBoundingClientRect();
+    let x = clientX - rect.left - 30; // center the 60px wide basket
+    if (x < 0) x = 0;
+    if (x > rect.width - 60) x = rect.width - 60;
+    basket.style.left = `${x}px`;
+  }
+
+  const onMouseMove = (e) => moveBasket(e.clientX);
+  const onTouchMove = (e) => {
+    if (e.touches && e.touches[0]) {
+      moveBasket(e.touches[0].clientX);
+    }
+  };
+
+  area.addEventListener('mousemove', onMouseMove);
+  area.addEventListener('touchmove', onTouchMove, { passive: true });
+
+  const healthyItems = ['🍏', '🍌', '🥗', '🥛', '🥑', '🥦', '🍓'];
+  const cheatItems   = ['🍕', '🍔', '🍟', '🍩', '🥤', '🍰', '🌭'];
+  
+  let activeFalling = []; // list of active falling elements
+
+  // Spawn an item
+  function spawnItem() {
+    if (activeGame !== 'catcher' || timeLeft <= 0) return;
+
+    const isHealthy = Math.random() < 0.6; // 60% healthy
+    const text = isHealthy 
+      ? healthyItems[Math.floor(Math.random() * healthyItems.length)]
+      : cheatItems[Math.floor(Math.random() * cheatItems.length)];
+
+    const item = document.createElement('div');
+    item.className = 'falling-item';
+    item.textContent = text;
+    item.style.position = 'absolute';
+    item.style.fontSize = '28px';
+    
+    const rect = area.getBoundingClientRect();
+    const spawnWidth = rect.width > 0 ? rect.width - 30 : 250;
+    const x = Math.random() * spawnWidth;
+    item.style.left = `${x}px`;
+    item.style.top = '-40px';
+    area.appendChild(item);
+
+    const fallSpeed = 3 + Math.random() * 3;
+    const fallingObj = {
+      el: item,
+      x,
+      y: -40,
+      isHealthy,
+      speed: fallSpeed
+    };
+
+    activeFalling.push(fallingObj);
+
+    // Schedule next spawn
+    const spawnDelay = 700 + Math.random() * 600;
+    addTimer(setTimeout(spawnItem, spawnDelay));
+  }
+
+  // Animation Loop (requestAnimationFrame)
+  let animationId = null;
+  function updatePhysics() {
+    if (activeGame !== 'catcher' || timeLeft <= 0) return;
+
+    const basketRect = basket.getBoundingClientRect();
+    const areaRect = area.getBoundingClientRect();
+
+    activeFalling = activeFalling.filter(item => {
+      item.y += item.speed;
+      item.el.style.top = `${item.y}px`;
+
+      // Check collision
+      const itemRect = item.el.getBoundingClientRect();
+      const collided = (
+        itemRect.bottom >= basketRect.top &&
+        itemRect.top <= basketRect.bottom &&
+        itemRect.right >= basketRect.left &&
+        itemRect.left <= basketRect.right
+      );
+
+      if (collided) {
+        if (item.isHealthy) {
+          score += 10;
+          sound.hit();
+          basket.style.transform = 'translateX(-50%) scale(1.2)';
+          setTimeout(() => basket.style.transform = 'translateX(-50%) scale(1)', 100);
+        } else {
+          score = Math.max(0, score - 5);
+          sound.miss();
+          area.style.background = 'rgba(255, 0, 0, 0.15)';
+          setTimeout(() => area.style.background = 'rgba(0, 0, 0, 0.2)', 150);
+        }
+
+        if (scoreEl) scoreEl.textContent = `Score: ${score}`;
+        item.el.remove();
+        return false;
+      }
+
+      // Check boundary fall
+      if (item.y > areaRect.height) {
+        if (item.isHealthy) {
+          score = Math.max(0, score - 2);
+          if (scoreEl) scoreEl.textContent = `Score: ${score}`;
+        }
+        item.el.remove();
+        return false;
+      }
+
+      return true;
+    });
+
+    animationId = requestAnimationFrame(updatePhysics);
+  }
+
+  spawnItem();
+  updatePhysics();
+
+  const gameInterval = setInterval(() => {
+    timeLeft--;
+    if (timer) timer.textContent = `${timeLeft}s`;
+
+    if (timeLeft <= 0) {
+      clearInterval(gameInterval);
+      cancelAnimationFrame(animationId);
+      sound.gameOver();
+      onGameComplete('Food Catcher', score);
+    }
+  }, 1000);
+  addTimer(gameInterval);
+
+  gameCleanup = () => {
+    cancelAnimationFrame(animationId);
+    area.removeEventListener('mousemove', onMouseMove);
+    area.removeEventListener('touchmove', onTouchMove);
+    area.innerHTML = '';
   };
 }
 
@@ -400,7 +649,8 @@ function startHamster() {
 const GAME_STARTERS = {
   breather: startBreather,
   reflex:   startReflex,
-  hamster:  startHamster
+  hamster:  startHamster,
+  catcher:  startCatcher
 };
 
 function initGameCards() {
@@ -428,5 +678,5 @@ export function initGames() {
   initCloseButton();
   initPostgameModal();
 
-  console.log('🎮 Games module initialized');
+  console.log('🎮 Games module initialized with sound effects and Food Catcher');
 }

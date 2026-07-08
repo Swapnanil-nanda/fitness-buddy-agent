@@ -101,6 +101,100 @@ function updateNutritionSummary(meals) {
   document.getElementById('nut-fat').textContent      = `${Math.round(totalFat)}g`;
 }
 
+// ──── Ingredient Database & Calorie Estimator ────
+const INGREDIENT_DB = {
+  egg: { base: 75, perUnit: true },
+  eggs: { base: 75, perUnit: true },
+  chicken: { base: 250, perGram: 1.65 },
+  rice: { base: 200, perGram: 1.3 },
+  roti: { base: 80, perUnit: true },
+  chapati: { base: 80, perUnit: true },
+  tortilla: { base: 100, perUnit: true },
+  bread: { base: 80, perUnit: true },
+  oil: { base: 120, perUnit: true },
+  butter: { base: 100, perUnit: true },
+  ghee: { base: 120, perUnit: true },
+  cheese: { base: 110, perGram: 3.5 },
+  milk: { base: 120, perGram: 0.6 },
+  sugar: { base: 40, perUnit: true },
+  honey: { base: 60, perUnit: true },
+  paneer: { base: 260, perGram: 2.6 },
+  dal: { base: 120, perUnit: true },
+  lentils: { base: 100, perUnit: true },
+  beans: { base: 110, perUnit: true },
+  fish: { base: 180, perGram: 1.5 },
+  salmon: { base: 200, perGram: 1.8 },
+  tuna: { base: 150, perGram: 1.3 },
+  beef: { base: 250, perGram: 2.5 },
+  steak: { base: 300, perGram: 2.5 },
+  salad: { base: 20, perUnit: true },
+  lettuce: { base: 15, perUnit: true },
+  spinach: { base: 15, perUnit: true },
+  cucumber: { base: 15, perUnit: true },
+  tomato: { base: 20, perUnit: true },
+  onion: { base: 30, perUnit: true },
+  veggies: { base: 25, perUnit: true },
+  vegetables: { base: 25, perUnit: true },
+  apple: { base: 80, perUnit: true },
+  banana: { base: 90, perUnit: true },
+  orange: { base: 60, perUnit: true },
+  mango: { base: 150, perUnit: true },
+  potato: { base: 130, perUnit: true },
+  potatoes: { base: 130, perUnit: true },
+  nuts: { base: 160, perUnit: true },
+  almonds: { base: 160, perUnit: true },
+  avocado: { base: 160, perUnit: true },
+  pasta: { base: 200, perUnit: true },
+  noodles: { base: 220, perUnit: true },
+  oats: { base: 150, perUnit: true },
+  oatmeal: { base: 150, perUnit: true },
+  yogurt: { base: 100, perUnit: true },
+  curd: { base: 100, perUnit: true },
+  protein: { base: 120, perUnit: true },
+  whey: { base: 120, perUnit: true }
+};
+
+export function parseAndEstimateCalories(ingredientsStr) {
+  if (!ingredientsStr.trim()) return 0;
+  
+  const items = ingredientsStr.split(/[,\n]/);
+  let totalCal = 0;
+  
+  items.forEach(item => {
+    const text = item.toLowerCase().trim();
+    if (!text) return;
+    
+    let matched = false;
+    for (const [key, info] of Object.entries(INGREDIENT_DB)) {
+      if (text.includes(key)) {
+        matched = true;
+        const qtyMatch = text.match(/(\d+(?:\.\d+)?)\s*(g|ml|tbsp|tsp|cup|x)?/i);
+        if (qtyMatch) {
+          const val = parseFloat(qtyMatch[1]);
+          const unit = qtyMatch[2] ? qtyMatch[2].toLowerCase() : '';
+          
+          if (info.perGram && (unit === 'g' || unit === 'ml')) {
+            totalCal += val * info.perGram;
+          } else if (unit === 'tbsp' || unit === 'cup') {
+            totalCal += val * (info.base * 0.8);
+          } else {
+            totalCal += val * info.base;
+          }
+        } else {
+          totalCal += info.base;
+        }
+        break;
+      }
+    }
+    
+    if (!matched) {
+      totalCal += 50; 
+    }
+  });
+  
+  return Math.round(totalCal);
+}
+
 // ──── Module Init ────
 
 /**
@@ -132,15 +226,26 @@ export function initNutrition() {
     if (e.target === modal) modal.classList.remove('visible');
   });
 
+  // ── Auto-calculate calories from ingredients in real-time ──
+  ingInput.addEventListener('input', () => {
+    const estimated = parseAndEstimateCalories(ingInput.value);
+    calInput.value = estimated > 0 ? estimated : '';
+  });
+
   // ── Submit meal ──
   submitBtn.addEventListener('click', () => {
     const name     = nameInput.value.trim();
-    const calories = parseInt(calInput.value, 10);
     const ingredients = ingInput.value.trim();
+    const calories = parseInt(calInput.value, 10);
 
     // Basic validation
-    if (!name || isNaN(calories) || calories <= 0) {
-      showToast('Please enter a meal name and valid calories.', '⚠️');
+    if (!name || !ingredients) {
+      showToast('Please enter a meal name and ingredients list.', '⚠️');
+      return;
+    }
+
+    if (isNaN(calories) || calories <= 0) {
+      showToast('Please enter valid ingredients to estimate calories.', '⚠️');
       return;
     }
 
