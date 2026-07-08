@@ -14,7 +14,12 @@ const CHEAT_FOODS = [
   'pancake', 'syrup', 'corndog', 'mozzarella sticks', 'onion rings',
   'taco bell', 'mcdonalds', 'kfc', 'wendys', 'popeyes', 'cupcake',
   'pop tart', 'cheetos', 'doritos', 'ramen noodles', 'instant noodles',
-  'sausage roll', 'energy drink', 'redbull', 'monster'
+  'sausage roll', 'energy drink', 'redbull', 'monster',
+  'mountain dew', 'sprite', 'fanta', '7up', 'dr pepper', 'mirinda',
+  'samosa', 'pakora', 'jalebi', 'gulab jamun', 'kachori', 'bhature', 'puri',
+  'shawarma', 'fish and chips', 'fried fish', 'chicken nuggets', 'hot wings',
+  'muffin', 'croissant', 'tart', 'pie', 'gelato', 'butter naan', 'kebab',
+  'sweet', 'sweets', 'candy floss', 'gummy', 'marshmallow', 'milk chocolate'
 ];
 
 /**
@@ -29,6 +34,23 @@ function detectCheat(name, ingredients) {
   return CHEAT_FOODS.some(term => combined.includes(term));
 }
 
+/**
+ * Categorize food cuisine origins based on keywords.
+ */
+function getCuisineCategory(name, ingredients) {
+  const text = `${name} ${ingredients}`.toLowerCase();
+  if (/soda|cola|pepsi|coke|juice|milk|coffee|tea|smoothie|shake|drink|dew|fanta|sprite|7up|dr pepper/i.test(text)) return 'Beverage 🥤';
+  if (/cake|donut|cookie|brownie|cream|pastry|muffin|pie|chocolate|sweet|jalebi|jamun|waffle|pancake|syrup/i.test(text)) return 'Dessert & Bakery 🍰';
+  if (/salad|lettuce|spinach|kale|broccoli|veggie|cucumber|avocado|tomato/i.test(text)) return 'Greens & Salad 🥗';
+  if (/samosa|biryani|roti|chapati|paneer|dal|curry|naan|tikka|pakora|chole|dosa|idli|sambar|kebab|puri|kachori/i.test(text)) return 'South Asian 🍛';
+  if (/pizza|pasta|spaghetti|lasagna|risotto|mozzarella|pesto/i.test(text)) return 'Italian 🍝';
+  if (/burger|fries|hotdog|nugget|wings|steak|mac|fish and chips/i.test(text)) return 'American / Fast Food 🍔';
+  if (/ramen|noodle|sushi|dumpling|tofu|soy|kimchi|teriyaki|spring roll|chow mein/i.test(text)) return 'East Asian 🥢';
+  if (/taco|burrito|quesadilla|nachos|salsa|guacamole|tortilla/i.test(text)) return 'Mexican 🌮';
+  if (/shawarma|hummus|falafel|pita|gyro/i.test(text)) return 'Middle Eastern 🥙';
+  return 'Global Cuisine 🌐';
+}
+
 // ──── DOM Rendering ────
 
 /**
@@ -39,12 +61,13 @@ function renderMealItem(meal) {
   const div = document.createElement('div');
   div.className = 'log-item';
   const typeClass = meal.isCheat ? 'cheat' : 'healthy';
+  const cuisine = meal.cuisine || 'Global Cuisine 🌐';
 
   div.innerHTML = `
     <div class="log-icon ${typeClass}">${meal.isCheat ? '🍔' : '🥗'}</div>
     <div class="log-details">
       <div class="name">${meal.name}</div>
-      <div class="meta">${meal.time}</div>
+      <div class="meta">${meal.time} · <span style="opacity: 0.8; font-weight: 500;">${cuisine}</span></div>
     </div>
     <span class="tag ${typeClass}">${meal.isCheat ? 'Cheat' : 'Healthy'}</span>
     <div class="log-value">${meal.calories} kcal</div>
@@ -257,6 +280,7 @@ export function initNutrition() {
 
     // Cheat detection
     const isCheat = detectCheat(name, ingredients);
+    const cuisine = getCuisineCategory(name, ingredients);
 
     // Build meal object
     const meal = {
@@ -265,6 +289,7 @@ export function initNutrition() {
       calories,
       ingredients,
       isCheat,
+      cuisine,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 

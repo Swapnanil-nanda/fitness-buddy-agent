@@ -199,6 +199,19 @@ async function boot() {
   // Load persisted state
   State.load();
 
+  // ── Periodic Day Rollover Checker ──
+  setInterval(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (State.today.date !== todayStr) {
+      console.log('🌅 New day detected! Resetting daily log and games...');
+      const rolledState = freshDay();
+      rolledState.date = todayStr;
+      State.data.today = rolledState;
+      State.save();
+      window.location.reload();
+    }
+  }, 15000);
+
   // Initialize tab router
   initTabRouter();
 
