@@ -46,7 +46,7 @@ function bmiCategory(bmi) {
  * 4. Activate special behaviors based on detected intent
  */
 function compilePrompt(userMessage) {
-  const { weight, height, age, gender, bmi, goal, tdee, macros, bodyFat, neck, waist, hip, activity } = State.user;
+  const { weight, height, age, gender, bmi, goal, tdee, macros, bodyFat, neck, waist, hip, activity, cuisine, diet } = State.user;
   const { meals, exercises, water, sleep, mood } = State.today;
   const consumed  = State.caloriesConsumed;
   const burned    = State.caloriesBurned;
@@ -64,6 +64,35 @@ function compilePrompt(userMessage) {
     extra: 'Extra Active (very hard exercise/physical job)'
   }[activity] || activity || 'Lightly Active';
 
+  const cuisineLabel = {
+    any: 'No specific preference',
+    indian: 'Indian',
+    mediterranean: 'Mediterranean',
+    'east-asian': 'East Asian (Chinese, Japanese, Korean)',
+    'southeast-asian': 'Southeast Asian (Thai, Vietnamese, Filipino)',
+    'middle-eastern': 'Middle Eastern',
+    mexican: 'Mexican / Latin American',
+    american: 'American / Western',
+    african: 'African',
+    european: 'European'
+  }[cuisine] || cuisine || 'No specific preference';
+
+  const dietLabel = {
+    'no-restriction': 'No restriction (eats everything)',
+    vegetarian: 'Vegetarian (no meat/seafood)',
+    vegan: 'Vegan (no animal products)',
+    eggetarian: 'Eggetarian (vegetarian + eggs)',
+    pescatarian: 'Pescatarian (fish/seafood only, no meat)',
+    keto: 'Keto / Low-carb (under 30g net carbs/day)',
+    'gluten-free': 'Gluten-free',
+    'dairy-free': 'Dairy-free (no milk/cheese/butter)',
+    halal: 'Halal',
+    kosher: 'Kosher'
+  }[diet] || diet || 'No restriction';
+
+  // Build a recent meals snapshot for food pattern inference
+  const recentMealNames = meals.slice(-5).map(m => m.name).join(', ') || 'none logged today';
+
   let biometricDetails = '';
   if (bodyFat > 0) biometricDetails += `\n- Body Fat: ${bodyFat}%`;
   if (neck > 0) biometricDetails += `\n- Neck Size: ${neck}cm`;
@@ -80,6 +109,11 @@ USER PROFILE:
 - Daily Calorie Target: ${tdee} kcal
 - Macro Targets: Protein ${macros.protein}g, Carbs ${macros.carbs}g, Fat ${macros.fat}g${biometricDetails}
 
+FOOD PREFERENCES (CRITICAL — always respect these):
+- Preferred Cuisine: ${cuisineLabel}
+- Diet Type: ${dietLabel}
+- Recent meals logged today: ${recentMealNames}
+
 TODAY'S PROGRESS:
 - Calories consumed: ${consumed}/${tdee} kcal
 - Calories burned: ${burned} kcal
@@ -94,20 +128,23 @@ RESPONSE RULES:
 2. Be concise, empathetic, and friendly. Keep responses under 150 words.
 3. NEVER generate raw JSON payloads, developer backticks, code blocks, or HTML formatting. Your response MUST be plain, warm, human conversational text.
 4. Do not repeat the prompt. Do not simulate future dialog. Stop generating when your response is complete.
-5. CRITICAL NUTRITION ACCURACY: When providing recipes, calories, or macros, YOU MUST BE FACTUALLY CORRECT based on USDA nutritional databases and Indian Food Composition Tables (IFCT). Do NOT hallucinate macros or calories. E.g., Eggs have ~0.4g carbs (0g sugar, 0g fiber). Chicken breast has 0g carbs. A standard samosa is ~260-300 kcal (high carb, high fat junk food). Strictly match real-world, verified nutrition profiles. Never make up random calorie/macro counts.
+5. CRITICAL NUTRITION ACCURACY: When providing recipes, calories, or macros, YOU MUST BE FACTUALLY CORRECT. Use USDA data for Western foods, IFCT for Indian foods, and authoritative sources for other cuisines. Never hallucinate macros. Always cite realistic calorie ranges.
 6. YOUTUBE LINKS: When providing a YouTube link, you MUST format it as a markdown link with a descriptive name, e.g., [Watch 10 Min Workout](https://youtube.com/...). Do not output raw URLs.
+7. FOOD PREFERENCE ENFORCEMENT: You MUST tailor ALL food suggestions, recipes, and meal ideas to the user's preferred cuisine and diet type above. If they are vegetarian, NEVER suggest meat. If they prefer Indian food, suggest Indian dishes. If they ask about a different ethnic cuisine (e.g. Korean, Mexican, Italian), enthusiastically provide authentic dishes from that cuisine with accurate nutritional info — you may also draw a connection to their usual cuisine if it helps (e.g. "This is similar to a dal in terms of protein!").
 
 SPECIAL BEHAVIORS (detect and handle):
 
-A) CRAVING DETECTION: If user mentions craving junk food (including Indian snacks like samosa, pakora, jalebi, bhature, etc.):
-   → Suggest a SPECIFIC healthy alternative with estimated calories.
+A) CRAVING DETECTION: If user mentions craving junk food:
+   → Suggest a SPECIFIC healthy alternative that fits their cuisine preference and diet type, with estimated calories.
 B) INGREDIENT/RECIPE MODE: If user lists ingredients:
-   → Generate a simple recipe. Wrap in [RECIPE_START] and [RECIPE_END] with valid JSON format: {"name":"Recipe Name","steps":["step1","step2"],"calories":number,"protein":number,"carbs":number,"fat":number,"fiber":number}. BE FACTUALLY CORRECT WITH MACROS matching USDA/IFCT datasets exactly. ONLY the JSON payload inside the brackets should be raw data; the rest of your reply must be conversational.
+   → Generate a simple recipe aligned to their cuisine preference. Wrap in [RECIPE_START] and [RECIPE_END] with valid JSON: {"name":"Recipe Name","steps":["step1","step2"],"calories":number,"protein":number,"carbs":number,"fat":number,"fiber":number}. Macros MUST be accurate. ONLY JSON inside the brackets; rest of reply must be conversational.
 C) STRESS/EXHAUSTION MODE: If mood is Stressed or Exhausted:
    → Recommend light stretching, deep breathing, or games in the Play tab instead of heavy workouts.
 D) WORKOUT/CHALLENGE MODE: If user asks for workouts or exercise suggestions:
    → First ask them what type of exercise they prefer (e.g. cardio, strength, yoga, home workout).
-   → Once they specify, suggest exactly ONE proper exercise with sets/reps or duration, and wrap it in a [CHALLENGE:Exercise name] tag.`;
+   → Once they specify, suggest exactly ONE proper exercise with sets/reps or duration, and wrap it in a [CHALLENGE:Exercise name] tag.
+E) ETHNIC / UNFAMILIAR CUISINE QUESTIONS: If user asks about foods from any culture or cuisine (e.g. "what is pho?", "is bibimbap healthy?", "explain injera"):
+   → Answer enthusiastically with the dish's origin, key ingredients, and accurate macros/calories. Always respect the user's diet restrictions in any suggestions.`;
 
   // ── Compile Prompt using Chat Template format to prevent model hallucinations/run-on conversation ──
   let prompt = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|>\n`;
@@ -440,29 +477,64 @@ export function initChat() {
 
   // ── Level Up Reward Generator ──
   EventBus.on('level:up', async ({ level, title }) => {
-    const introMsg = `🎉 **Level Up!** You reached Level ${level} (${title})! Give me a moment to whip up a special Level-Up Reward recipe for you based on your calories today...`;
+    const introMsg = `🎉 **Level Up!** You reached Level ${level} (${title})! Give me a moment to whip up a special Level-Up Reward recipe for you based on your preferences today...`;
     addMessage('ai', introMsg);
     setTyping(true);
 
+    // Pull live food preferences for a personalised reward
+    const { tdee, cuisine, diet } = State.user;
+    const remaining = Math.max(0, tdee - State.caloriesConsumed);
+
+    const cuisineHint = {
+      any: 'any cuisine the user would enjoy',
+      indian: 'Indian cuisine (e.g. biryani, paneer, dal makhani, kheer)',
+      mediterranean: 'Mediterranean cuisine (e.g. falafel, hummus, kebab, baklava)',
+      'east-asian': 'East Asian cuisine (e.g. ramen, sushi, bibimbap, dim sum)',
+      'southeast-asian': 'Southeast Asian cuisine (e.g. pad thai, pho, nasi goreng)',
+      'middle-eastern': 'Middle Eastern cuisine (e.g. shawarma, mansaf, kunafa)',
+      mexican: 'Mexican cuisine (e.g. tacos, enchiladas, churros)',
+      american: 'American / Western cuisine (e.g. burger, mac and cheese, pancakes)',
+      african: 'African cuisine (e.g. jollof rice, suya, injera with stew)',
+      european: 'European cuisine (e.g. pasta, pizza, crepes, schnitzel)'
+    }[cuisine] || 'any cuisine the user would enjoy';
+
+    const dietRule = {
+      'no-restriction': 'The user eats everything — meat, dairy, eggs are all fine.',
+      vegetarian: 'The user is VEGETARIAN. Do NOT include any meat, poultry, or seafood.',
+      vegan: 'The user is VEGAN. Do NOT include any animal products (no meat, dairy, eggs, honey).',
+      eggetarian: 'The user is EGGETARIAN — vegetarian but eggs are allowed. No meat or seafood.',
+      pescatarian: 'The user is PESCATARIAN — fish and seafood are allowed, but no other meat.',
+      keto: 'The user is on KETO — keep net carbs under 15g. High fat, moderate protein.',
+      'gluten-free': 'The user is GLUTEN-FREE. No wheat, barley, or rye.',
+      'dairy-free': 'The user is DAIRY-FREE. No milk, cheese, butter, or cream.',
+      halal: 'The user eats HALAL — no pork, no alcohol in cooking.',
+      kosher: 'The user eats KOSHER — no pork, no shellfish, no mixing meat and dairy.'
+    }[diet] || 'The user eats everything.';
+
     const prompt = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-You are FitBuddy AI. The user just reached Level ${level}!
-Their daily calorie target is ${State.user.tdee} kcal and they have consumed ${State.caloriesConsumed} kcal.
-Generate a friendly, warm congratulatory response celebrating their level up, followed by a highly satisfying but relatively healthy "cheat meal" recipe recommendation that fits well with their remaining calories.
-Make your response entirely conversational and human-friendly.
-At the very end of your response, output a structured metadata payload for the recipe card using this exact format (ensure the JSON is valid and inside the [RECIPE_START] and [RECIPE_END] tags so the app can render it beautifully):
+You are FitBuddy AI. The user just reached Level ${level} — celebrate them warmly!
 
+USER FOOD CONTEXT:
+- Preferred cuisine: ${cuisineHint}
+- Diet rule: ${dietRule}
+- Remaining calories today: ~${remaining} kcal (daily target: ${tdee} kcal)
+
+YOUR TASK:
+1. Write 2-3 short, warm, personal sentences congratulating them.
+2. Then suggest ONE satisfying but relatively healthy treat/cheat meal from their preferred cuisine that fits within their remaining calories and strictly follows their diet rule.
+3. Keep the recipe SIMPLE — 2 to 4 steps maximum. Real everyday ingredients.
+4. Provide accurate macros (use real-world nutritional data, not guesses).
+
+STRICT RULES:
+- NEVER suggest a dish that violates the diet rule above.
+- Keep the total calorie count realistic and close to the remaining calories.
+- Never show raw JSON, backticks, or code outside of the [RECIPE_START]...[RECIPE_END] block.
+- Write warm, human words everywhere else.
+
+At the very end, output the recipe card in this exact format:
 [RECIPE_START]
-{
-  "name": "Cheat Meal Name",
-  "steps": ["Step 1 description", "Step 2 description"],
-  "calories": 450,
-  "protein": 25,
-  "carbs": 50,
-  "fat": 15
-}
+{"name":"Dish Name","steps":["Step 1","Step 2","Step 3"],"calories":number,"protein":number,"carbs":number,"fat":number,"fiber":number}
 [RECIPE_END]
-
-Never show raw JSON, backticks, or code structures outside of the [RECIPE_START] and [RECIPE_END] block. Write warm, encouraging, human words.
 <|eot_id|><|start_header_id|>user<|end_header_id|>
 Generate my level up reward recipe.<|eot_id|><|start_header_id|>assistant<|end_header_id|>
 `;

@@ -209,6 +209,8 @@ html, body {
   flex-direction: column;
   padding: 0;
   position: relative;
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* ──── Glass Card ──── */
@@ -743,6 +745,7 @@ html, body {
   flex: 1;
   overflow-y: auto;
   position: relative;
+  min-height: 0;
 }
 
 .tab-pane {

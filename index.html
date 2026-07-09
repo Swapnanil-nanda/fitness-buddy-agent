@@ -297,6 +297,36 @@
       <span class="label">Daily Calories</span>
       <span class="value" id="tdee-value">—</span>
     </div>
+    <div class="form-group" style="margin-top:16px">
+      <label class="form-label" for="onboard-cuisine">Preferred Cuisine</label>
+      <select class="form-select" id="onboard-cuisine">
+        <option value="any">Any / No preference</option>
+        <option value="indian">Indian</option>
+        <option value="mediterranean">Mediterranean</option>
+        <option value="east-asian">East Asian (Chinese, Japanese, Korean)</option>
+        <option value="southeast-asian">Southeast Asian (Thai, Vietnamese, Filipino)</option>
+        <option value="middle-eastern">Middle Eastern</option>
+        <option value="mexican">Mexican / Latin American</option>
+        <option value="american">American / Western</option>
+        <option value="african">African</option>
+        <option value="european">European</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="onboard-diet">Diet Type</label>
+      <select class="form-select" id="onboard-diet">
+        <option value="no-restriction">No restriction (everything)</option>
+        <option value="vegetarian">Vegetarian</option>
+        <option value="vegan">Vegan</option>
+        <option value="eggetarian">Eggetarian (Veg + Eggs)</option>
+        <option value="pescatarian">Pescatarian (Fish only)</option>
+        <option value="keto">Keto / Low-carb</option>
+        <option value="gluten-free">Gluten-free</option>
+        <option value="dairy-free">Dairy-free</option>
+        <option value="halal">Halal</option>
+        <option value="kosher">Kosher</option>
+      </select>
+    </div>
     <button class="btn btn-primary mt-16" id="onboard-submit" disabled>Get Started →</button>
   </div>
 </div>
@@ -440,6 +470,39 @@
           <option value="extra">Extra Active (1.9x)</option>
         </select>
       </div>
+    </div>
+
+    <div class="modal-subtitle" style="margin-top: 15px; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">Food Preferences</div>
+
+    <div class="form-group">
+      <label class="form-label" for="settings-cuisine">Preferred Cuisine</label>
+      <select class="form-select" id="settings-cuisine">
+        <option value="any">Any / No preference</option>
+        <option value="indian">Indian</option>
+        <option value="mediterranean">Mediterranean</option>
+        <option value="east-asian">East Asian (Chinese, Japanese, Korean)</option>
+        <option value="southeast-asian">Southeast Asian (Thai, Vietnamese, Filipino)</option>
+        <option value="middle-eastern">Middle Eastern</option>
+        <option value="mexican">Mexican / Latin American</option>
+        <option value="american">American / Western</option>
+        <option value="african">African</option>
+        <option value="european">European</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="settings-diet">Diet Type</label>
+      <select class="form-select" id="settings-diet">
+        <option value="no-restriction">No restriction (everything)</option>
+        <option value="vegetarian">Vegetarian</option>
+        <option value="vegan">Vegan</option>
+        <option value="eggetarian">Eggetarian (Veg + Eggs)</option>
+        <option value="pescatarian">Pescatarian (Fish only)</option>
+        <option value="keto">Keto / Low-carb</option>
+        <option value="gluten-free">Gluten-free</option>
+        <option value="dairy-free">Dairy-free</option>
+        <option value="halal">Halal</option>
+        <option value="kosher">Kosher</option>
+      </select>
     </div>
 
     <div class="modal-subtitle" style="margin-top: 15px; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">Optional Biometrics (For Advanced AI suggestions)</div>

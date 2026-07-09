@@ -44,7 +44,9 @@ function createDefaultState() {
       neck: 0,
       waist: 0,
       hip: 0,
-      activity: 'lightly' // 'sedentary' | 'lightly' | 'moderately' | 'very' | 'extra'
+      activity: 'lightly', // 'sedentary' | 'lightly' | 'moderately' | 'very' | 'extra'
+      cuisine: 'any',      // preferred cuisine
+      diet: 'no-restriction' // diet type / restriction
     },
     onboarded: false,
     today: freshDay(),
@@ -426,6 +428,8 @@ function initSettings() {
     document.getElementById('settings-gender').value = user.gender || 'male';
     document.getElementById('settings-goal').value = user.goal || 'maintain';
     document.getElementById('settings-activity').value = user.activity || 'lightly';
+    document.getElementById('settings-cuisine').value = user.cuisine || 'any';
+    document.getElementById('settings-diet').value = user.diet || 'no-restriction';
     document.getElementById('settings-bodyfat').value = user.bodyFat || '';
     document.getElementById('settings-neck').value = user.neck || '';
     document.getElementById('settings-waist').value = user.waist || '';
@@ -446,6 +450,8 @@ function initSettings() {
     const gender = document.getElementById('settings-gender').value;
     const goal = document.getElementById('settings-goal').value;
     const activity = document.getElementById('settings-activity').value;
+    const cuisine = document.getElementById('settings-cuisine').value;
+    const diet = document.getElementById('settings-diet').value;
     const bodyFat = parseFloat(document.getElementById('settings-bodyfat').value) || 0;
     const neck = parseFloat(document.getElementById('settings-neck').value) || 0;
     const waist = parseFloat(document.getElementById('settings-waist').value) || 0;
@@ -461,6 +467,8 @@ function initSettings() {
       gender,
       goal,
       activity,
+      cuisine,
+      diet,
       bodyFat,
       neck,
       waist,

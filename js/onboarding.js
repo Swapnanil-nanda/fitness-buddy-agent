@@ -214,6 +214,9 @@ export function initOnboarding() {
 
     const { bmi, goalKey, adjustedTDEE, proteinG, carbsG, fatG, weight, height, age, gender } = _computed;
 
+    const cuisineEl = document.getElementById('onboard-cuisine');
+    const dietEl    = document.getElementById('onboard-diet');
+
     State.patch('user', {
       username,
       weight,
@@ -223,7 +226,9 @@ export function initOnboarding() {
       bmi,
       goal: goalKey,
       tdee: adjustedTDEE,
-      macros: { protein: proteinG, carbs: carbsG, fat: fatG }
+      macros: { protein: proteinG, carbs: carbsG, fat: fatG },
+      cuisine: cuisineEl ? cuisineEl.value : 'any',
+      diet:    dietEl    ? dietEl.value    : 'no-restriction'
     });
 
     State.set('onboarded', true);
