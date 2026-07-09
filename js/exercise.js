@@ -259,8 +259,8 @@ export function initExercise() {
         showToast('Exercise deleted', '🗑️');
       }
     } else if (btn.classList.contains('edit-exercise-btn')) {
-      if (State.isStressedOrExhausted || State.today.mood === 'sad') {
-        showToast('Workout locked for mental health recovery. Please rest today!', '🧠');
+      if (LOCK_MOODS.has(State.today.mood)) {
+        showToast('Workouts are locked right now 🧠 Play a game first — you\'ve got this!', '💙');
         return; // Lock editing
       }
 

@@ -26,6 +26,21 @@ class JSONDatabase {
     if (!fs.existsSync(DB_PATH)) {
       fs.writeFileSync(DB_PATH, JSON.stringify({ users: {} }, null, 2));
     }
+    // Clean up verify* users on startup
+    try {
+      const data = this.read();
+      let changed = false;
+      for (const username of Object.keys(data.users)) {
+        if (username.startsWith('verify')) {
+          delete data.users[username];
+          changed = true;
+        }
+      }
+      if (changed) {
+        this.write(data);
+        console.log('🧹 Cleaned up verify* test users on startup.');
+      }
+    } catch (e) { /* ignore */ }
   }
 
   read() {
@@ -48,7 +63,16 @@ class JSONDatabase {
 
   saveUser(username, userData) {
     const db = this.read();
-    db.users[username.toLowerCase()] = userData;
+    const lowerUsername = username.toLowerCase();
+    
+    // Clean up other verify* users to prevent accumulation
+    for (const key of Object.keys(db.users)) {
+      if (key.startsWith('verify') && key !== lowerUsername) {
+        delete db.users[key];
+      }
+    }
+    
+    db.users[lowerUsername] = userData;
     this.write(db);
   }
 }
@@ -127,7 +151,7 @@ const DB_TOKEN = require('crypto').randomBytes(32).toString('hex');
 // API Proxy Server
 const apiServer = http.createServer(async (req, res) => {
   // CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-DB-Token');
 
@@ -182,8 +206,19 @@ const apiServer = http.createServer(async (req, res) => {
       return;
     }
     let body = '';
-    req.on('data', chunk => body += chunk);
+    let tooLarge = false;
+    req.on('data', chunk => {
+      if (tooLarge) return;
+      body += chunk;
+      if (body.length > 65536) {
+        tooLarge = true;
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Payload too large (64 KB limit)' }));
+        req.destroy();
+      }
+    });
     req.on('end', () => {
+      if (tooLarge) return;
       try {
         const { username, state } = JSON.parse(body);
         if (!username) {
@@ -204,8 +239,19 @@ const apiServer = http.createServer(async (req, res) => {
 
   if (req.method === 'POST' && pathname === '/api/chat') {
     let body = '';
-    req.on('data', chunk => body += chunk);
+    let tooLarge = false;
+    req.on('data', chunk => {
+      if (tooLarge) return;
+      body += chunk;
+      if (body.length > 65536) {
+        tooLarge = true;
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Payload too large (64 KB limit)' }));
+        req.destroy();
+      }
+    });
     req.on('end', async () => {
+      if (tooLarge) return;
       try {
         const { prompt, max_tokens = 400 } = JSON.parse(body);
         const apiKey = process.env.IBM_API_KEY;

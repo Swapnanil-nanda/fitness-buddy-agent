@@ -152,7 +152,7 @@ E) ETHNIC / UNFAMILIAR CUISINE QUESTIONS: If user asks about foods from any cult
   let prompt = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n${systemPrompt}<|eot_id|>\n`;
 
   // Add conversation history
-  const history = (State.chatHistory || []).slice(-3);
+  const history = (State.chatHistory || []).slice(-5);
   history.forEach(msg => {
     const roleId = msg.role === 'user' ? 'user' : 'assistant';
     prompt += `<|start_header_id|>${roleId}<|end_header_id|>\n\n${msg.content}<|eot_id|>\n`;

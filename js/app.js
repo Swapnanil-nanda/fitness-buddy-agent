@@ -113,6 +113,16 @@ async function syncToDatabase() {
   }
 }
 
+function debounce(fn, delay) {
+  let timeoutId;
+  return function(...args) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
+const debouncedSyncToDatabase = debounce(syncToDatabase, 1000);
+
 export async function loadUserDataFromDB(username) {
   try {
     const endpoint = `${getApiBaseUrl()}/api/user-data?username=${encodeURIComponent(username)}`;
@@ -175,7 +185,7 @@ export const State = {
   save() {
     try {
       localStorage.setItem('fitbuddy_state', JSON.stringify(_state));
-      syncToDatabase();
+      debouncedSyncToDatabase();
     } catch (e) {
       console.warn('State save failed:', e);
     }

@@ -205,8 +205,15 @@ function onMealAdded() {
 
 /** Exercise challenge: complete when an exercise with 10+ min is logged */
 function onExerciseAdded({ exercise }) {
+  const challenges = State.today.challenges || [];
+  const hasUncompleted = challenges.some(
+    c => !c.completed && c.text.toLowerCase().includes('exercise')
+  );
+  if (!hasUncompleted) return;
+
   if (exercise && exercise.time >= 10) {
     autoCompleteChallenge('exercise');
+    return;
   }
   // Also check total exercise time across the day
   const totalMinutes = State.today.exercises.reduce((s, e) => s + (e.time || 0), 0);
