@@ -12,10 +12,17 @@ const path = require('path');
 const PORT = Number(process.env.PORT || 3001);
 const STATIC_PORT = Number(process.env.STATIC_PORT || 3000);
 
-const DB_PATH = path.join(__dirname, 'db.json');
+// ── Database lives in .data/ — outside the static-served directory.
+// This folder is gitignored and never served to clients.
+const DATA_DIR = path.join(__dirname, '.data');
+const DB_PATH  = path.join(DATA_DIR, 'db.json');
 
 class JSONDatabase {
   constructor() {
+    // Ensure the .data directory exists before writing
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
     if (!fs.existsSync(DB_PATH)) {
       fs.writeFileSync(DB_PATH, JSON.stringify({ users: {} }, null, 2));
     }
@@ -112,20 +119,50 @@ async function getIAMToken(apiKey) {
   return cachedToken;
 }
 
+// ── Internal DB token — generated once at startup, stored in memory only.
+// The frontend receives it via /api/db-token (localhost only).
+// All /api/user-data calls must include it in the X-DB-Token header.
+const DB_TOKEN = require('crypto').randomBytes(32).toString('hex');
+
 // API Proxy Server
 const apiServer = http.createServer(async (req, res) => {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-DB-Token');
 
   if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
 
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname.replace(/\/$/, '');
 
+  // ── Token handshake endpoint — localhost only ──
+  // The app calls this once on boot to get the session DB token.
+  if (req.method === 'GET' && pathname === '/api/db-token') {
+    const host = req.headers.host || '';
+    const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1');
+    if (!isLocal) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Forbidden' }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ token: DB_TOKEN }));
+    return;
+  }
+
+  // ── Token guard for all /api/user-data calls ──
+  function isValidToken(request) {
+    return request.headers['x-db-token'] === DB_TOKEN;
+  }
+
   // ── Database Routes ──
   if (req.method === 'GET' && pathname === '/api/user-data') {
+    if (!isValidToken(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
     const username = parsedUrl.searchParams.get('username');
     if (!username) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -139,6 +176,11 @@ const apiServer = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && pathname === '/api/user-data') {
+    if (!isValidToken(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      return;
+    }
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
@@ -240,7 +282,26 @@ const MIME_TYPES = {
 const staticServer = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const requestPath = parsedUrl.pathname === '/' ? 'index.html' : decodeURIComponent(parsedUrl.pathname);
+
+  // ── Security: block access to sensitive paths ──
+  const normalized = requestPath.replace(/\\/g, '/').toLowerCase();
+  const BLOCKED = ['.data', 'db.json', '.env', '.gitignore', 'server.js'];
+  const isBlocked = BLOCKED.some(b => normalized.includes(b));
+  if (isBlocked) {
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Forbidden' }));
+    return;
+  }
+
   let filePath = path.join(__dirname, requestPath);
+
+  // ── Security: prevent path traversal outside __dirname ──
+  if (!filePath.startsWith(__dirname)) {
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Forbidden' }));
+    return;
+  }
+
   const ext = path.extname(filePath);
   const contentType = MIME_TYPES[ext] || 'text/plain';
 

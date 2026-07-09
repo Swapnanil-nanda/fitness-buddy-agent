@@ -3,7 +3,7 @@
    Real-time BMI, TDEE (Mifflin-St Jeor), Macros
    ============================================ */
 
-import { State, EventBus, getApiBaseUrl, showToast } from './app.js';
+import { State, EventBus, getApiBaseUrl, showToast, dbHeaders } from './app.js';
 
 // ──── Constants ────
 const ACTIVITY_MULTIPLIER = 1.375; // Lightly active default
@@ -199,7 +199,7 @@ export function initOnboarding() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout fail-safe
       
-      const res = await fetch(endpoint, { signal: controller.signal });
+      const res = await fetch(endpoint, { signal: controller.signal, headers: dbHeaders() });
       clearTimeout(timeoutId);
       const resData = await res.json();
       

@@ -27,6 +27,29 @@ export function getApiBaseUrl() {
   return `${window.location.protocol}//${window.location.hostname}:${apiPort}`;
 }
 
+// ── Session DB token — fetched once from /api/db-token at boot (local only).
+// Attached as X-DB-Token header on every /api/user-data request.
+let _dbToken = null;
+
+async function fetchDbToken() {
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/api/db-token`);
+    if (res.ok) {
+      const data = await res.json();
+      _dbToken = data.token || null;
+    }
+  } catch (e) {
+    // Running on Vercel or token endpoint unavailable — no token needed
+    _dbToken = null;
+  }
+}
+
+export function dbHeaders() {
+  const h = { 'Content-Type': 'application/json' };
+  if (_dbToken) h['X-DB-Token'] = _dbToken;
+  return h;
+}
+
 // ──── Default State ────
 function createDefaultState() {
   return {
@@ -82,7 +105,7 @@ async function syncToDatabase() {
     
     await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: dbHeaders(),
       body: JSON.stringify({ username, state: _state })
     });
   } catch (e) {
@@ -97,7 +120,7 @@ export async function loadUserDataFromDB(username) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5 second timeout fail-safe
     
-    const res = await fetch(endpoint, { signal: controller.signal });
+    const res = await fetch(endpoint, { signal: controller.signal, headers: dbHeaders() });
     clearTimeout(timeoutId);
     const resData = await res.json();
     if (resData.success && resData.data) {
@@ -271,6 +294,9 @@ function initLabEntry() {
 async function boot() {
   // Keep the front door responsive even if a feature module fails later.
   initLabEntry();
+
+  // Fetch session DB token from server (local dev only — no-op on Vercel)
+  await fetchDbToken();
 
   // Load persisted state
   State.load();
