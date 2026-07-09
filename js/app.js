@@ -18,6 +18,15 @@ export const EventBus = {
   }
 };
 
+export function getApiBaseUrl() {
+  const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (!isLocalHost) return '';
+
+  const staticPort = Number(window.location.port || 3000);
+  const apiPort = staticPort === 3000 ? 3001 : staticPort + 1;
+  return `${window.location.protocol}//${window.location.hostname}:${apiPort}`;
+}
+
 // ──── Default State ────
 function createDefaultState() {
   return {
@@ -41,7 +50,10 @@ function createDefaultState() {
     today: freshDay(),
     xp: { total: 0, level: 1, title: 'Beginner' },
     settings: {
-      mode: 'proxy' // 'proxy' | 'local' | 'direct'
+      mode: 'proxy', // 'proxy' | 'local' | 'direct'
+      waterTarget: 8,
+      customCheatFoods: [],
+      customHealthyFoods: []
     },
     chatHistory: []
   };
@@ -56,11 +68,7 @@ export function freshDay() {
     sleep: 7,
     mood: 'neutral',
     xpEarned: 0,
-    challenges: [
-      { id: 'c1', text: 'Drink 8 glasses of water', xp: 20, completed: false },
-      { id: 'c2', text: 'Log at least 2 meals', xp: 15, completed: false },
-      { id: 'c3', text: 'Do 10 minutes of exercise', xp: 25, completed: false }
-    ]
+    challenges: []
   };
 }
 
@@ -68,8 +76,7 @@ async function syncToDatabase() {
   const username = _state.user.username;
   if (!username) return;
   try {
-    const isLocal = window.location.port === '3000' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const endpoint = isLocal ? 'http://localhost:3001/api/user-data' : '/api/user-data';
+    const endpoint = `${getApiBaseUrl()}/api/user-data`;
     
     await fetch(endpoint, {
       method: 'POST',
@@ -83,10 +90,13 @@ async function syncToDatabase() {
 
 export async function loadUserDataFromDB(username) {
   try {
-    const isLocal = window.location.port === '3000' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const endpoint = isLocal ? `http://localhost:3001/api/user-data?username=${encodeURIComponent(username)}` : `/api/user-data?username=${encodeURIComponent(username)}`;
+    const endpoint = `${getApiBaseUrl()}/api/user-data?username=${encodeURIComponent(username)}`;
     
-    const res = await fetch(endpoint);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5 second timeout fail-safe
+    
+    const res = await fetch(endpoint, { signal: controller.signal });
+    clearTimeout(timeoutId);
     const resData = await res.json();
     if (resData.success && resData.data) {
       _state = deepMerge(createDefaultState(), resData.data);
@@ -100,7 +110,7 @@ export async function loadUserDataFromDB(username) {
       console.log(`📡 Fetched user "${username}" from database!`);
     }
   } catch (e) {
-    console.warn('Failed to load user data from DB:', e);
+    console.warn('Failed to load user data from DB or timed out:', e);
   }
 }
 
@@ -158,6 +168,11 @@ export const State = {
           _state.today = freshDay();
           _state.today.date = todayStr;
           this.save();
+        } else {
+          // Remove old default challenges (c1, c2, c3) so only AI/custom tasks remain
+          if (_state.today.challenges) {
+            _state.today.challenges = _state.today.challenges.filter(c => !['c1', 'c2', 'c3'].includes(c.id));
+          }
         }
       }
     } catch (e) {
@@ -190,7 +205,7 @@ export const State = {
   },
   get isStressedOrExhausted() {
     const m = _state.today.mood;
-    return m === 'stressed' || m === 'exhausted';
+    return m === 'stressed' || m === 'exhausted' || m === 'sad';
   }
 };
 
@@ -236,10 +251,39 @@ export function showToast(text, icon = '✨', duration = 2500) {
   toastTimer = setTimeout(() => toast.classList.remove('visible'), duration);
 }
 
+function initLabEntry() {
+  const labPage = document.getElementById('init-lab-page');
+  const enterLabBtn = document.getElementById('enter-lab-btn');
+  if (!labPage || !enterLabBtn || enterLabBtn.dataset.bound === 'true') return;
+
+  enterLabBtn.dataset.bound = 'true';
+  enterLabBtn.addEventListener('click', () => {
+    labPage.classList.remove('visible');
+    window.setTimeout(() => {
+      labPage.style.display = 'none';
+    }, 600);
+  });
+}
+
 // ──── Module Initialization ────
 async function boot() {
+  // Keep the front door responsive even if a feature module fails later.
+  initLabEntry();
+
   // Load persisted state
   State.load();
+
+  // Hide onboarding and landing page synchronously if already logged in
+  if (State.data.onboarded) {
+    const onboardingModal = document.getElementById('onboarding-modal');
+    if (onboardingModal) onboardingModal.classList.remove('visible');
+    
+    const labPage = document.getElementById('init-lab-page');
+    if (labPage) {
+      labPage.classList.remove('visible');
+      labPage.style.display = 'none';
+    }
+  }
 
   // Load from DB if username exists to ensure sync
   if (State.user.username) {
@@ -262,7 +306,32 @@ async function boot() {
   // Initialize tab router
   initTabRouter();
 
-  // Dynamically import modules
+  const moduleLoaders = [
+    ['onboarding', () => import('./onboarding.js')],
+    ['tracker', () => import('./tracker.js')],
+    ['nutrition', () => import('./nutrition.js')],
+    ['exercise', () => import('./exercise.js')],
+    ['chat', () => import('./chat.js')],
+    ['games', () => import('./games.js')],
+    ['gamification', () => import('./gamification.js')]
+  ];
+  const modules = [];
+  try {
+    for (const [name, load] of moduleLoaders) {
+      try {
+        modules.push(await load());
+      } catch (err) {
+        err.message = `${name}: ${err.message}`;
+        throw err;
+      }
+    }
+  } catch (err) {
+    console.error('FitBuddy module startup failed:', err);
+    console.error('FitBuddy module startup stack:', err?.stack || err?.message || err);
+    showToast('Some app modules failed to load. Check the console.', '!', 5000);
+    return;
+  }
+
   const [
     { initOnboarding },
     { initTracker },
@@ -271,15 +340,7 @@ async function boot() {
     { initChat },
     { initGames },
     { initGamification }
-  ] = await Promise.all([
-    import('./onboarding.js'),
-    import('./tracker.js'),
-    import('./nutrition.js'),
-    import('./exercise.js'),
-    import('./chat.js'),
-    import('./games.js'),
-    import('./gamification.js')
-  ]);
+  ] = modules;
 
   // Initialize all modules
   initOnboarding();
@@ -293,11 +354,6 @@ async function boot() {
   // Settings modal
   initSettings();
   initLogout();
-
-  // Hide onboarding if already done
-  if (State.data.onboarded) {
-    document.getElementById('onboarding-modal').classList.remove('visible');
-  }
 
   console.log('🏋️ FitBuddy initialized');
 }
@@ -418,4 +474,8 @@ function initSettings() {
 }
 
 // ──── Boot ────
-document.addEventListener('DOMContentLoaded', boot);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', boot);
+} else {
+  boot();
+}

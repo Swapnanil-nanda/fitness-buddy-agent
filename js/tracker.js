@@ -72,6 +72,15 @@ export function initTracker() {
     moodBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.mood === mood));
     State.set('today.mood', mood);
     EventBus.emit('mood:changed', { mood });
+
+    // Suggest mood-lifting techniques for negative moods
+    if (mood === 'sad') {
+      showToast('Feeling low? Try a Zen Breather or a fun mini game in the Play tab to lift your spirits! 🎮🧘', '💙', 5000);
+    } else if (mood === 'stressed') {
+      showToast('Stressed out? Take a deep breath. Try the Zen Breather game or just rest for a bit — you deserve it! 🌿', '🫂', 5000);
+    } else if (mood === 'exhausted') {
+      showToast('You look tired! Rest is important. Or try a relaxing mini game to unwind before anything else 😴🎮', '💤', 5000);
+    }
   }
 
   moodBtns.forEach(btn => {
@@ -82,50 +91,137 @@ export function initTracker() {
   const savedMood = State.today.mood || 'neutral';
   moodBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.mood === savedMood));
 
-  // ═══════ Hydration Tracker ═══════
-
-  const glassEls       = document.querySelectorAll('.water-glass');
-  const hydrationCount = document.getElementById('hydration-count');
-
-  /**
-   * Render glasses filled up to `count` and update the counter.
-   */
-  function renderGlasses(count) {
-    glassEls.forEach(el => {
-      const idx = parseInt(el.dataset.index, 10);
-      el.classList.toggle('filled', idx < count);
-    });
-    hydrationCount.innerHTML = `${count}<span> / ${TOTAL_GLASSES} glasses</span>`;
-  }
-
-  glassEls.forEach(el => {
-    el.addEventListener('click', () => {
-      const idx        = parseInt(el.dataset.index, 10);
-      const current    = State.today.water;
-      let newCount;
-
-      if (idx < current) {
-        // Clicking an already-filled glass: unfill from here onward
-        newCount = idx;
-      } else {
-        // Clicking the next (or a later) glass: fill up to and including it
-        newCount = idx + 1;
-      }
-
-      // Award XP only for genuinely NEW glasses
-      const added = newCount - current;
-      if (added > 0) {
-        EventBus.emit('xp:gained', { amount: 5 * added, reason: `Drank ${added} glass${added > 1 ? 'es' : ''} of water` });
-      }
-
-      State.set('today.water', newCount);
-      EventBus.emit('water:changed', { count: newCount });
-      renderGlasses(newCount);
-    });
+  // Sync mood selection if updated externally (like post-game completion)
+  EventBus.on('mood:changed', ({ mood }) => {
+    moodBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.mood === mood));
   });
 
+  // ═══════ Hydration Tracker ═══════
+
+  const glassesContainer = document.getElementById('water-glasses');
+  const drankInput       = document.getElementById('water-drank-input');
+  const litresInput      = document.getElementById('water-litres-input');
+  const targetInput      = document.getElementById('water-target-input');
+  const hydrationCount   = document.getElementById('hydration-count');
+
+  /**
+   * Synthesize a clean, physical "bubble plop" sound using the Web Audio API.
+   */
+  function playWaterSound() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      osc.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      const now = audioCtx.currentTime;
+      osc.type = 'sine';
+      // Pitch sweeps up quickly to emulate a bubble pop or water droplet plip
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.exponentialRampToValueAtTime(850, now + 0.12);
+      
+      gainNode.gain.setValueAtTime(0.2, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      
+      osc.start(now);
+      osc.stop(now + 0.15);
+    } catch (e) {
+      console.warn("Web Audio failed to play:", e);
+    }
+  }
+
+  /**
+   * Re-renders the hydration section: updates inputs, labels, and generates water drop divs.
+   */
+  function renderGlassesSection() {
+    if (!glassesContainer || !drankInput || !litresInput || !targetInput || !hydrationCount) return;
+
+    const current = State.today.water || 0;
+    const target = State.settings.waterTarget || 8;
+    
+    // Sync numerical inputs
+    drankInput.value = current;
+    litresInput.value = (current * 0.25).toFixed(2); // 1 glass = 0.25L
+    targetInput.value = target;
+    
+    hydrationCount.innerHTML = `${current}<span> / ${target} glasses (${(current * 0.25).toFixed(2)}L)</span>`;
+    
+    // Clear and build the dynamic droplets
+    glassesContainer.innerHTML = '';
+    for (let i = 0; i < target; i++) {
+      const glass = document.createElement('div');
+      glass.className = `water-glass${i < current ? ' filled' : ''}`;
+      glass.dataset.index = i;
+      glass.innerHTML = '💧';
+      
+      // Inline style transitions for the droplet hover
+      glass.style.transition = 'all var(--t-spring)';
+      
+      glass.addEventListener('click', () => {
+        const idx = i;
+        let newCount;
+        if (idx < current) {
+          // Toggle off glasses from this index onwards
+          newCount = idx;
+        } else {
+          // Toggle on up to this index
+          newCount = idx + 1;
+        }
+        updateWaterCount(newCount);
+        playWaterSound();
+      });
+      glassesContainer.appendChild(glass);
+    }
+  }
+
+  /**
+   * Commits the new water count to state, handles XP rewards, and re-renders.
+   */
+  function updateWaterCount(newCount) {
+    const current = State.today.water || 0;
+    const added = newCount - current;
+    if (added > 0) {
+      EventBus.emit('xp:gained', { amount: 5 * added, reason: `Drank ${added} glass${added > 1 ? 'es' : ''} of water` });
+    }
+    State.set('today.water', newCount);
+    EventBus.emit('water:changed', { count: newCount });
+    renderGlassesSection();
+  }
+
+  // ── Input Listeners ──
+  if (drankInput) {
+    drankInput.addEventListener('change', () => {
+      let val = parseInt(drankInput.value, 10);
+      if (isNaN(val) || val < 0) val = 0;
+      updateWaterCount(val);
+      playWaterSound();
+    });
+  }
+
+  if (litresInput) {
+    litresInput.addEventListener('change', () => {
+      let val = parseFloat(litresInput.value);
+      if (isNaN(val) || val < 0) val = 0;
+      // Convert litres back to glasses (0.25L per glass)
+      const glasses = Math.round(val / 0.25);
+      updateWaterCount(glasses);
+      playWaterSound();
+    });
+  }
+
+  if (targetInput) {
+    targetInput.addEventListener('change', () => {
+      let val = parseInt(targetInput.value, 10);
+      if (isNaN(val) || val < 1) val = 8;
+      State.set('settings.waterTarget', val);
+      renderGlassesSection();
+    });
+  }
+
   // Restore persisted hydration
-  renderGlasses(State.today.water || 0);
+  renderGlassesSection();
 
   // ═══════ Sleep Tracker ═══════
 

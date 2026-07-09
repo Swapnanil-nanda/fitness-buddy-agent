@@ -44,6 +44,7 @@ function calculateBurn(activity, time) {
 function renderExerciseItem(exercise) {
   const div = document.createElement('div');
   div.className = 'log-item';
+  div.dataset.id = exercise.id;
 
   // Build a concise meta string (e.g. "30 min" or "50 reps" or "30 min · 50 reps")
   const metaParts = [];
@@ -57,7 +58,13 @@ function renderExerciseItem(exercise) {
       <div class="name">${exercise.name}</div>
       <div class="meta">${metaText}</div>
     </div>
-    <div class="log-value">${exercise.burn} kcal</div>
+    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+      <div class="log-value">${exercise.burn} kcal</div>
+      <div class="action-buttons">
+        <button class="action-btn edit-exercise-btn" title="Edit">✏️</button>
+        <button class="action-btn delete-exercise-btn" title="Delete">❌</button>
+      </div>
+    </div>
   `;
 
   return div;
@@ -72,11 +79,39 @@ function renderAllExercises() {
   const exercises = State.today.exercises;
 
   // Clear rendered items (keep empty-state placeholder)
-  list.querySelectorAll('.log-item').forEach(el => el.remove());
+  list.querySelectorAll('.log-item, .category-header').forEach(el => el.remove());
 
   if (exercises.length > 0) {
     empty.style.display = 'none';
-    exercises.forEach(ex => list.appendChild(renderExerciseItem(ex)));
+
+    // Group by time of day
+    const grouped = {};
+    exercises.forEach(ex => {
+      const time = ex.timeOfDay || 'Morning';
+      if (!grouped[time]) grouped[time] = [];
+      grouped[time].push(ex);
+    });
+
+    const order = ['Morning', 'Afternoon', 'Evening'];
+    order.forEach(time => {
+      if (grouped[time] && grouped[time].length > 0) {
+        const header = document.createElement('div');
+        header.className = 'category-header';
+        header.textContent = time;
+        header.style.fontSize = '12px';
+        header.style.fontWeight = '700';
+        header.style.color = 'var(--text-3)';
+        header.style.textTransform = 'uppercase';
+        header.style.marginTop = '10px';
+        header.style.marginBottom = '4px';
+        header.style.letterSpacing = '1px';
+        header.style.paddingLeft = '4px';
+        list.appendChild(header);
+        
+        grouped[time].forEach(ex => list.appendChild(renderExerciseItem(ex)));
+      }
+    });
+
   } else {
     empty.style.display = '';
   }
@@ -100,6 +135,7 @@ function updateExerciseSummary(exercises) {
  * Sets up modal interactions, calorie calculations, stress warnings, and XP rewards.
  */
 export function initExercise() {
+  let editingExerciseId = null;
   // DOM references
   const modal       = document.getElementById('exercise-modal');
   const addBtn      = document.getElementById('add-exercise-btn');
@@ -108,10 +144,12 @@ export function initExercise() {
   const actSelect   = document.getElementById('exercise-name');
   const timeInput   = document.getElementById('exercise-time');
   const repsInput   = document.getElementById('exercise-reps');
+  const timeOfDayInput = document.getElementById('exercise-timeofday');
   const warningEl   = document.getElementById('exercise-warning');
   
   const customGroup = document.getElementById('custom-exercise-group');
   const customInput = document.getElementById('exercise-custom-name');
+  const list        = document.getElementById('exercises-list');
 
   // ── Show custom name field when Other is selected ──
   actSelect.addEventListener('change', () => {
@@ -123,13 +161,23 @@ export function initExercise() {
     }
   });
 
-  // ── Open modal (with optional stress warning) ──
+  // ── Open modal (Mental-health locking enforced) ──
   addBtn.addEventListener('click', () => {
-    if (State.isStressedOrExhausted) {
-      warningEl.classList.add('visible');
-    } else {
-      warningEl.classList.remove('visible');
+    if (State.isStressedOrExhausted || State.today.mood === 'sad') {
+      showToast('Workout locked for mental health recovery. Please rest today!', '🧠');
+      return; // Lock exercise logging
     }
+
+    editingExerciseId = null;
+    actSelect.value  = '';
+    customInput.value = '';
+    customGroup.classList.add('hidden');
+    timeInput.value  = '';
+    repsInput.value  = '';
+    if (timeOfDayInput) timeOfDayInput.value = 'Morning';
+    document.querySelector('#exercise-modal .modal-title').textContent = 'Log Exercise';
+    submitBtn.textContent = 'Log Exercise';
+
     modal.classList.add('visible');
   });
 
@@ -144,6 +192,51 @@ export function initExercise() {
     if (e.target === modal) {
       modal.classList.remove('visible');
       warningEl.classList.remove('visible');
+    }
+  });
+
+  // ── Delegation for Edit / Delete ──
+  list.addEventListener('click', (e) => {
+    const btn = e.target.closest('.action-btn');
+    if (!btn) return;
+    
+    const item = btn.closest('.log-item');
+    if (!item) return;
+    
+    const id = Number(item.dataset.id);
+
+    if (btn.classList.contains('delete-exercise-btn')) {
+      if (confirm('Delete this exercise?')) {
+        State.today.exercises = State.today.exercises.filter(ex => ex.id !== id);
+        State.save();
+        renderAllExercises();
+        showToast('Exercise deleted', '🗑️');
+      }
+    } else if (btn.classList.contains('edit-exercise-btn')) {
+      if (State.isStressedOrExhausted || State.today.mood === 'sad') {
+        showToast('Workout locked for mental health recovery. Please rest today!', '🧠');
+        return; // Lock editing
+      }
+
+      const exercise = State.today.exercises.find(ex => ex.id === id);
+      if (exercise) {
+        editingExerciseId = id;
+        actSelect.value = exercise.activity;
+        if (exercise.activity === 'other') {
+          customGroup.classList.remove('hidden');
+          customInput.value = exercise.name.replace('✏️ ', '').trim();
+        } else {
+          customGroup.classList.add('hidden');
+        }
+        timeInput.value = exercise.time || '';
+        repsInput.value = exercise.reps || '';
+        if (timeOfDayInput) timeOfDayInput.value = exercise.timeOfDay || 'Morning';
+        
+        document.querySelector('#exercise-modal .modal-title').textContent = 'Edit Exercise';
+        submitBtn.textContent = 'Update Exercise';
+        
+        modal.classList.add('visible');
+      }
     }
   });
 
@@ -210,28 +303,44 @@ Estimate for ${customName} done by ${weight}kg person.<|eot_id|><|start_header_i
     } else {
       burn = calculateBurn(activity, time);
     }
+    
+    const timeOfDay = timeOfDayInput ? timeOfDayInput.value : 'Morning';
 
-    // Build exercise object
-    const exercise = {
-      id: Date.now(),
-      name: displayName,
-      activity,
-      time: time || null,
-      reps: reps || null,
-      burn,
-      timeLogged: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
+    if (editingExerciseId) {
+      const exercise = State.today.exercises.find(ex => ex.id === editingExerciseId);
+      if (exercise) {
+        exercise.name = displayName;
+        exercise.activity = activity;
+        exercise.time = time || null;
+        exercise.reps = reps || null;
+        exercise.timeOfDay = timeOfDay;
+        exercise.burn = burn;
+      }
+      editingExerciseId = null;
+      showToast('Exercise updated!', '✅');
+    } else {
+      // Build exercise object
+      const exercise = {
+        id: Date.now(),
+        name: displayName,
+        activity,
+        time: time || null,
+        reps: reps || null,
+        timeOfDay,
+        burn,
+        timeLogged: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      State.today.exercises.push(exercise);
+      EventBus.emit('exercise:added', { exercise });
+      EventBus.emit('xp:gained', { amount: 20, reason: 'Logged an exercise' });
+
+      // User feedback
+      showToast(`${displayName} logged — ${burn} kcal burned! 🔥`, '🏃');
+    }
 
     // Persist to state
-    State.today.exercises.push(exercise);
     State.save();
-
-    // Notify the system
-    EventBus.emit('exercise:added', { exercise });
-    EventBus.emit('xp:gained', { amount: 20, reason: 'Logged an exercise' });
-
-    // User feedback
-    showToast(`${displayName} logged — ${burn} kcal burned! 🔥`, '🏃');
 
     // Re-render
     renderAllExercises();
@@ -242,6 +351,7 @@ Estimate for ${customName} done by ${weight}kg person.<|eot_id|><|start_header_i
     customGroup.classList.add('hidden');
     timeInput.value  = '';
     repsInput.value  = '';
+    if (timeOfDayInput) timeOfDayInput.value = 'Morning';
     modal.classList.remove('visible');
     warningEl.classList.remove('visible');
   });

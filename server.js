@@ -9,8 +9,8 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 3001;
-const STATIC_PORT = 3000;
+const PORT = Number(process.env.PORT || 3001);
+const STATIC_PORT = Number(process.env.STATIC_PORT || 3000);
 
 const DB_PATH = path.join(__dirname, 'db.json');
 
@@ -188,7 +188,7 @@ const apiServer = http.createServer(async (req, res) => {
             }
           },
           JSON.stringify({
-            model_id: 'meta-llama/llama-3-3-70b-instruct',
+            model_id: process.env.IBM_MODEL_ID || 'ibm/granite-3-8b-instruct',
             input: prompt,
             project_id: projectId,
             parameters: {
@@ -238,7 +238,9 @@ const MIME_TYPES = {
 };
 
 const staticServer = http.createServer((req, res) => {
-  let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
+  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const requestPath = parsedUrl.pathname === '/' ? 'index.html' : decodeURIComponent(parsedUrl.pathname);
+  let filePath = path.join(__dirname, requestPath);
   const ext = path.extname(filePath);
   const contentType = MIME_TYPES[ext] || 'text/plain';
 

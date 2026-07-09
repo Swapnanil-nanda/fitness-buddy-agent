@@ -73,18 +73,22 @@ function renderChallenges() {
   const challenges = State.today.challenges || [];
 
   if (challenges.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🏅</div><p>No challenges today.</p></div>';
+    container.innerHTML = `<div class="empty-state">No tasks yet!<br><button class="btn btn-secondary btn-add-task-empty" style="margin-top:10px;font-size:12px;padding:6px 10px;">+ Add Task</button></div>`;
     return;
   }
 
   container.innerHTML = challenges.map(ch => `
-    <div class="challenge-card${ch.completed ? ' completed' : ''}" data-id="${ch.id}">
+    <div class="challenge-card${ch.completed ? ' completed' : ''}" data-id="${ch.id}" style="position: relative; overflow: visible;">
       <span class="challenge-check">${ch.completed ? '✓' : ''}</span>
       <span class="challenge-text" style="flex: 1; padding: 0 8px;">${ch.text}</span>
       <span class="challenge-xp" style="margin-right: 8px;">+${ch.xp} XP</span>
-      <div class="challenge-actions" style="display: flex; gap: 4px;">
-        <button class="challenge-edit-btn" title="Edit challenge" style="background: transparent; border: none; cursor: pointer; padding: 4px; font-size: 14px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));">✏️</button>
-        <button class="challenge-delete-btn" title="Delete challenge" style="background: transparent; border: none; cursor: pointer; padding: 4px; font-size: 14px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));">🗑️</button>
+      <div class="challenge-actions" style="position: relative;">
+        <button class="task-kebab-btn">⋮</button>
+        <div class="task-dropdown">
+          <button class="task-dropdown-item btn-add-task">➕ Add Below</button>
+          <button class="task-dropdown-item btn-edit-task">✏️ Edit</button>
+          <button class="task-dropdown-item btn-delete-task">🗑️ Delete</button>
+        </div>
       </div>
     </div>
   `).join('');
@@ -186,7 +190,8 @@ function autoCompleteChallenge(keyword) {
 
 /** Water challenge: complete when user reaches 8 glasses */
 function onWaterChanged({ count }) {
-  if (count >= 8) {
+  const target = State.settings?.waterTarget || 8;
+  if (count >= target) {
     autoCompleteChallenge('water');
   }
 }
@@ -223,27 +228,40 @@ function onChallengeAdded({ challenge }) {
   challenges.push(newChallenge);
   State.set('today.challenges', challenges);
   renderChallenges();
-  showToast(`New challenge: ${newChallenge.text}`, '🎯');
+  showToast(`New task: ${newChallenge.text}`, '🎯');
 }
 
-function editChallenge(id) {
-  const challenges = State.today.challenges || [];
-  const challenge = challenges.find(c => c.id === id);
-  if (!challenge) return;
-  
-  const newText = prompt('✏️ Edit Challenge:', challenge.text);
-  if (newText === null) return;
-  
-  const trimmed = newText.trim();
-  if (!trimmed) {
-    showToast('Challenge cannot be empty.', '⚠️');
-    return;
+let editingTaskId = null;
+let insertAfterTaskId = null;
+
+export function openTaskModal(taskId = null, insertAfterId = null) {
+  const modal = document.getElementById('task-modal');
+  const title = document.getElementById('task-modal-title');
+  const submitBtn = document.getElementById('task-submit');
+  const nameInput = document.getElementById('task-name');
+  const xpInput = document.getElementById('task-xp');
+
+  editingTaskId = taskId;
+  insertAfterTaskId = insertAfterId;
+
+  if (editingTaskId) {
+    const challenges = State.today.challenges || [];
+    const challenge = challenges.find(c => c.id === editingTaskId);
+    if (challenge) {
+      nameInput.value = challenge.text;
+      xpInput.value = challenge.xp || 15;
+      title.textContent = 'Edit Task';
+      submitBtn.textContent = 'Update Task';
+    }
+  } else {
+    nameInput.value = '';
+    xpInput.value = 15;
+    title.textContent = 'Add Task';
+    submitBtn.textContent = 'Save Task';
   }
-  
-  challenge.text = trimmed;
-  State.save();
-  renderChallenges();
-  showToast('Challenge updated!', '📝');
+
+  modal.classList.add('visible');
+  nameInput.focus();
 }
 
 function deleteChallenge(id) {
@@ -252,13 +270,13 @@ function deleteChallenge(id) {
   if (index === -1) return;
   
   const challenge = challenges[index];
-  const confirmDelete = confirm(`🗑️ Delete challenge "${challenge.text}"?`);
+  const confirmDelete = confirm(`🗑️ Delete task "${challenge.text}"?`);
   if (!confirmDelete) return;
   
   challenges.splice(index, 1);
   State.save();
   renderChallenges();
-  showToast('Challenge deleted.', '🗑️');
+  showToast('Task deleted.', '🗑️');
 }
 
 // ──── Click Delegation for Challenge Cards ────
@@ -267,25 +285,56 @@ function initChallengeClicks() {
   const container = document.getElementById('challenges-list');
   if (!container) return;
 
+  // Close all dropdowns when clicking anywhere in the document
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.task-dropdown.visible').forEach(d => d.classList.remove('visible'));
+  });
+
   container.addEventListener('click', (e) => {
+    const kebabBtn = e.target.closest('.task-kebab-btn');
+    if (kebabBtn) {
+      e.stopPropagation();
+      // close others
+      document.querySelectorAll('.task-dropdown.visible').forEach(d => {
+        if (d !== kebabBtn.nextElementSibling) d.classList.remove('visible');
+      });
+      kebabBtn.nextElementSibling.classList.toggle('visible');
+      return;
+    }
+
+    if (e.target.closest('.btn-add-task-empty')) {
+      e.stopPropagation();
+      openTaskModal(null, null);
+      return;
+    }
+
     const card = e.target.closest('.challenge-card');
     if (!card) return;
     const id = card.dataset.id;
     if (!id) return;
 
-    if (e.target.closest('.challenge-edit-btn')) {
+    if (e.target.closest('.btn-edit-task')) {
       e.stopPropagation();
-      editChallenge(id);
+      document.querySelectorAll('.task-dropdown.visible').forEach(d => d.classList.remove('visible'));
+      openTaskModal(id);
       return;
     }
 
-    if (e.target.closest('.challenge-delete-btn')) {
+    if (e.target.closest('.btn-delete-task')) {
       e.stopPropagation();
+      document.querySelectorAll('.task-dropdown.visible').forEach(d => d.classList.remove('visible'));
       deleteChallenge(id);
       return;
     }
+    
+    if (e.target.closest('.btn-add-task')) {
+      e.stopPropagation();
+      document.querySelectorAll('.task-dropdown.visible').forEach(d => d.classList.remove('visible'));
+      openTaskModal(null, id);
+      return;
+    }
 
-    toggleChallenge(id);
+    if (id) toggleChallenge(id);
   });
 }
 
@@ -296,28 +345,84 @@ export function initGamification() {
   updateLevelUI();
   renderChallenges();
 
-  // ── Custom Challenge Addition ──
-  const addBtn = document.getElementById('add-custom-challenge-btn');
-  const input = document.getElementById('custom-challenge-text');
-  if (addBtn && input) {
-    addBtn.addEventListener('click', () => {
-      const text = input.value.trim();
-      if (!text) return;
-      
+  // ── Custom Challenge Addition (Empty State fallback) ──
+  const emptyStateAddBtn = document.getElementById('add-custom-challenge-btn');
+  if (emptyStateAddBtn) emptyStateAddBtn.remove(); // We handled this in HTML by removing the box
+
+  // ── Task Modal Events ──
+  const modal = document.getElementById('task-modal');
+  const cancelBtn = document.getElementById('task-cancel');
+  const submitBtn = document.getElementById('task-submit');
+  const nameInput = document.getElementById('task-name');
+  const xpInput = document.getElementById('task-xp');
+
+  if (cancelBtn && modal) {
+    cancelBtn.addEventListener('click', () => modal.classList.remove('visible'));
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.remove('visible');
+    });
+  }
+
+  const saveTask = () => {
+    const text = nameInput.value.trim();
+    const xp = parseInt(xpInput.value, 10) || 15;
+
+    if (!text) {
+      showToast('Please enter a task name.', '⚠️');
+      return;
+    }
+
+    const challenges = State.today.challenges || [];
+
+    if (editingTaskId) {
+      // Edit existing
+      const challenge = challenges.find(c => c.id === editingTaskId);
+      if (challenge) {
+        challenge.text = text;
+        challenge.xp = xp;
+        showToast('Task updated!', '📝');
+      }
+    } else {
+      // Create new task
       const newChallenge = {
         id: 'cust_' + Date.now(),
         text,
-        xp: 15,
+        xp,
         completed: false
       };
-      
-      const challenges = State.today.challenges || [];
-      challenges.push(newChallenge);
-      State.set('today.challenges', challenges);
-      renderChallenges();
-      
-      input.value = '';
-      showToast(`Custom challenge "${text}" added!`, '🎯');
+
+      if (insertAfterTaskId) {
+        // Insert after the specified card ID
+        const idx = challenges.findIndex(c => c.id === insertAfterTaskId);
+        if (idx !== -1) {
+          challenges.splice(idx + 1, 0, newChallenge);
+        } else {
+          challenges.push(newChallenge);
+        }
+      } else {
+        challenges.push(newChallenge);
+      }
+      showToast('Task added!', '🎯');
+    }
+
+    State.set('today.challenges', challenges);
+    renderChallenges();
+    modal.classList.remove('visible');
+  };
+
+  if (submitBtn) {
+    submitBtn.addEventListener('click', saveTask);
+  }
+
+  if (nameInput) {
+    nameInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') saveTask();
+    });
+  }
+
+  if (xpInput) {
+    xpInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') saveTask();
     });
   }
 

@@ -91,16 +91,18 @@ TODAY'S PROGRESS:
 
 RESPONSE RULES:
 1. Answer the user's question directly. Do not output anything irrelevant.
-2. Be concise and friendly. Keep responses under 150 words.
-3. If the user asks about workouts or nutrition, give specific suggestions.
-4. Do not simulate future dialog. Stop generating when your response is complete.
+2. Be concise, empathetic, and friendly. Keep responses under 150 words.
+3. NEVER generate raw JSON payloads, developer backticks, code blocks, or HTML formatting. Your response MUST be plain, warm, human conversational text.
+4. Do not repeat the prompt. Do not simulate future dialog. Stop generating when your response is complete.
+5. CRITICAL NUTRITION ACCURACY: When providing recipes, calories, or macros, YOU MUST BE FACTUALLY CORRECT based on USDA nutritional databases and Indian Food Composition Tables (IFCT). Do NOT hallucinate macros or calories. E.g., Eggs have ~0.4g carbs (0g sugar, 0g fiber). Chicken breast has 0g carbs. A standard samosa is ~260-300 kcal (high carb, high fat junk food). Strictly match real-world, verified nutrition profiles. Never make up random calorie/macro counts.
+6. YOUTUBE LINKS: When providing a YouTube link, you MUST format it as a markdown link with a descriptive name, e.g., [Watch 10 Min Workout](https://youtube.com/...). Do not output raw URLs.
 
 SPECIAL BEHAVIORS (detect and handle):
 
-A) CRAVING DETECTION: If user mentions craving junk food:
+A) CRAVING DETECTION: If user mentions craving junk food (including Indian snacks like samosa, pakora, jalebi, bhature, etc.):
    → Suggest a SPECIFIC healthy alternative with estimated calories.
 B) INGREDIENT/RECIPE MODE: If user lists ingredients:
-   → Generate a simple recipe. Wrap in [RECIPE_START] and [RECIPE_END] with valid JSON format: {"name":"Recipe Name","steps":["step1","step2"],"calories":number,"protein":number,"carbs":number,"fat":number}
+   → Generate a simple recipe. Wrap in [RECIPE_START] and [RECIPE_END] with valid JSON format: {"name":"Recipe Name","steps":["step1","step2"],"calories":number,"protein":number,"carbs":number,"fat":number,"fiber":number}. BE FACTUALLY CORRECT WITH MACROS matching USDA/IFCT datasets exactly. ONLY the JSON payload inside the brackets should be raw data; the rest of your reply must be conversational.
 C) STRESS/EXHAUSTION MODE: If mood is Stressed or Exhausted:
    → Recommend light stretching, deep breathing, or games in the Play tab instead of heavy workouts.
 D) WORKOUT/CHALLENGE MODE: If user asks for workouts or exercise suggestions:
@@ -150,21 +152,22 @@ function parseResponse(text) {
   displayText = displayText.replace(challengeRegex, '').trim();
 
   if (challengeCount > 0) {
-    showToast(`${challengeCount} challenge${challengeCount > 1 ? 's' : ''} added!`, '🎯');
+    showToast(`${challengeCount} task${challengeCount > 1 ? 's' : ''} added!`, '🎯');
   }
 
   // ── 2. Extract Recipes ──
   const recipeRegex = /\[RECIPE_START\]([\s\S]*?)\[RECIPE_END\]/gi;
   let recipeMatch;
   while ((recipeMatch = recipeRegex.exec(text)) !== null) {
-    const rawJSON = recipeMatch[1].trim();
+    let rawJSON = recipeMatch[1].trim();
+    // Clean up markdown code block ticks if the AI wrapped the JSON
+    rawJSON = rawJSON.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
     try {
       const recipe = JSON.parse(rawJSON);
       recipeHTML += renderRecipeCard(recipe);
     } catch (e) {
-      // If JSON is malformed, show raw text in a code block as fallback
       console.warn('Failed to parse recipe JSON:', e);
-      recipeHTML += `<div class="recipe-card"><pre style="white-space:pre-wrap">${escapeHTML(rawJSON)}</pre></div>`;
+      recipeHTML += `<div class="recipe-card" style="background:rgba(255,255,255,0.02);padding:12px;border-radius:8px;font-size:13px;color:var(--text-3);">Estimated nutritional breakdown and recipe instructions logged to daily summaries.</div>`;
     }
   }
   // Strip recipe blocks from display
@@ -177,7 +180,7 @@ function parseResponse(text) {
  * Renders a parsed recipe object as a styled card with macro pills and YouTube link.
  */
 function renderRecipeCard(recipe) {
-  const { name = 'Recipe', steps = [], calories = 0, protein = 0, carbs = 0, fat = 0 } = recipe;
+  const { name = 'Recipe', steps = [], calories = 0, protein = 0, carbs = 0, fat = 0, fiber = 0 } = recipe;
   const ytQuery = encodeURIComponent(`${name} recipe`);
 
   const stepsHTML = steps.map((s, i) =>
@@ -193,6 +196,7 @@ function renderRecipeCard(recipe) {
         <span style="background:#4ecdc420;color:#4ecdc4;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">💪 ${protein}g protein</span>
         <span style="background:#ffe66d20;color:#ffe66d;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">🌾 ${carbs}g carbs</span>
         <span style="background:#ff649920;color:#ff6499;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">🥑 ${fat}g fat</span>
+        ${fiber ? `<span style="background:#a2d14920;color:#a2d149;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">🌿 ${fiber}g fiber</span>` : ''}
       </div>
       <a href="https://www.youtube.com/results?search_query=${ytQuery}" target="_blank" rel="noopener"
          style="color:#ff6b6b;text-decoration:none;font-size:13px;font-weight:600;">
@@ -218,6 +222,43 @@ function escapeHTML(str) {
  * @param {string}       content — text content (will be escaped)
  * @param {string}       extra  — optional raw HTML appended after text (e.g. recipe cards)
  */
+function formatMarkdown(content) {
+  let escaped = escapeHTML(content);
+  
+  // Strip markdown code block ticks entirely to keep responses user-friendly
+  escaped = escaped.replace(/```[a-zA-Z]*\n?/g, '');
+  escaped = escaped.replace(/`/g, '');
+  
+  // Bold formatting: **text** -> <strong>text</strong>
+  escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+  // Bullet points: convert list syntax to clean bullets
+  escaped = escaped.replace(/^\s*[-*•]\s+(.+)/gm, '• $1');
+
+  escaped = escaped.replace(/\n/g, '<br>');
+  // Convert [text](url) markdown to clickable links
+  const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+  escaped = escaped.replace(linkRegex, (match, linkText, url) => {
+    return `<a href="${url}" target="_blank" class="chat-link" style="color: var(--teal); text-decoration: underline; font-weight: 600;">${linkText}</a>`;
+  });
+  
+  // Fallback: convert raw URLs to clickable links
+  const rawUrlRegex = /(?<!href=")(https?:\/\/[^\s<]+)/g;
+  escaped = escaped.replace(rawUrlRegex, (url) => {
+    let name = "View Link";
+    if (url.includes('youtube.com') || url.includes('youtu.be')) name = "Watch on YouTube →";
+    return `<a href="${url}" target="_blank" class="chat-link" style="color: var(--teal); text-decoration: underline; font-weight: 600;">${name}</a>`;
+  });
+  
+  return escaped;
+}
+
+/**
+ * Adds a message bubble to the chat container.
+ * @param {'user'|'ai'} role   — determines styling
+ * @param {string}       content — text content
+ * @param {string}       extra  — optional raw HTML appended after text (e.g. recipe cards)
+ */
 function addMessage(role, content, extra = '') {
   const wrapper = document.createElement('div');
   wrapper.className = `message ${role}`;
@@ -232,9 +273,9 @@ function addMessage(role, content, extra = '') {
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
 
-  // Render text content with basic line-break support
+  // Render text content with markdown link support
   const textNode = document.createElement('div');
-  textNode.innerHTML = escapeHTML(content).replace(/\n/g, '<br>');
+  textNode.innerHTML = formatMarkdown(content);
   bubble.appendChild(textNode);
 
   // Append extra HTML (recipe cards, etc.) if present
@@ -337,6 +378,16 @@ async function handleSend() {
  * @param {number} xp   — XP reward for completing the challenge
  */
 export function addChallengeFromAI(text, xp = 20) {
+  // Check if challenge already exists (case-insensitive)
+  const exists = State.today.challenges.some(
+    c => c.text.toLowerCase() === text.toLowerCase()
+  );
+
+  if (exists) {
+    console.log(`Skipping duplicate AI challenge: "${text}"`);
+    return;
+  }
+
   const challenge = {
     id: `ai_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     text,
@@ -371,7 +422,7 @@ export function initChat() {
   // ── Send on button click ──
   $sendBtn.addEventListener('click', handleSend);
 
-  // ── Send on Enter key (Shift+Enter for newline in future textarea upgrade) ──
+  // ── Send on Enter key ──
   $input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -385,6 +436,51 @@ export function initChat() {
   // ── Welcome message ──
   const welcomeText = '👋 Hey! I\'m FitBuddy, your AI fitness coach. Ask me about nutrition, workouts, recipes, or just tell me how you\'re feeling. I\'m here to help!';
   addMessage('ai', welcomeText);
+
+  // ── Level Up Reward Generator ──
+  EventBus.on('level:up', async ({ level, title }) => {
+    const introMsg = `🎉 **Level Up!** You reached Level ${level} (${title})! Give me a moment to whip up a special Level-Up Reward recipe for you based on your calories today...`;
+    addMessage('ai', introMsg);
+    setTyping(true);
+
+    const prompt = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+You are FitBuddy AI. The user just reached Level ${level}!
+Their daily calorie target is ${State.user.tdee} kcal and they have consumed ${State.caloriesConsumed} kcal.
+Generate a friendly, warm congratulatory response celebrating their level up, followed by a highly satisfying but relatively healthy "cheat meal" recipe recommendation that fits well with their remaining calories.
+Make your response entirely conversational and human-friendly.
+At the very end of your response, output a structured metadata payload for the recipe card using this exact format (ensure the JSON is valid and inside the [RECIPE_START] and [RECIPE_END] tags so the app can render it beautifully):
+
+[RECIPE_START]
+{
+  "name": "Cheat Meal Name",
+  "steps": ["Step 1 description", "Step 2 description"],
+  "calories": 450,
+  "protein": 25,
+  "carbs": 50,
+  "fat": 15
+}
+[RECIPE_END]
+
+Never show raw JSON, backticks, or code structures outside of the [RECIPE_START] and [RECIPE_END] block. Write warm, encouraging, human words.
+<|eot_id|><|start_header_id|>user<|end_header_id|>
+Generate my level up reward recipe.<|eot_id|><|start_header_id|>assistant<|end_header_id|>
+`;
+
+    try {
+      const result = await generateResponse(prompt);
+      setTyping(false);
+      if (result.success) {
+        const { displayText, recipeHTML } = parseResponse(result.text);
+        let finalMsg = displayText || "Here is your Level-Up Reward recipe! Enjoy! 🍽️";
+        addMessage('ai', finalMsg, recipeHTML);
+      } else {
+        addMessage('ai', `⚠️ Oops, I couldn't generate the recipe right now.`);
+      }
+    } catch (err) {
+      setTyping(false);
+      addMessage('ai', `⚠️ Something went wrong generating your reward.`);
+    }
+  });
 
   console.log('💬 Chat console initialized');
 }

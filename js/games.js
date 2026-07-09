@@ -141,43 +141,80 @@ function onGameComplete(gameName, score) {
   EventBus.emit('xp:gained', { amount: 25, reason: `Completed ${gameName}` });
   EventBus.emit('game:completed', { game: gameName, score });
 
-  // Show the postgame modal
   const modal    = $('postgame-modal');
   const title    = $('postgame-title');
   const subtitle = $('postgame-subtitle');
 
-  if (title) title.textContent = `Great ${gameName}!`;
-  if (subtitle) subtitle.textContent = `You scored ${score}! Are you feeling better now?`;
-  if (modal) modal.classList.add('visible');
+  // Show refined postgame feedback for negative moods
+  if (State.isStressedOrExhausted) {
+    const moodLabel = State.today.mood === 'sad' ? 'feeling down' :
+                      State.today.mood === 'exhausted' ? 'feeling tired' : 'feeling stressed';
+    if (title) title.textContent = `Well Done! 🎉`;
+    if (subtitle) subtitle.textContent = `You were ${moodLabel} earlier. Did this game help you feel better?`;
+    if (modal) modal.classList.add('visible');
+  } else {
+    // For happy/neutral moods, just show a quick celebration
+    closeOverlay();
+    activeGame = null;
+    showToast(`Great ${gameName}! You scored ${score}! 🎮`, '🎉', 3000);
+  }
 }
 
 function initPostgameModal() {
   const modal = $('postgame-modal');
   const yesBtn = $('postgame-yes');
   const noBtn  = $('postgame-no');
+  const subtitle = $('postgame-subtitle');
 
   if (yesBtn) {
     yesBtn.addEventListener('click', () => {
-      if (modal) modal.classList.remove('visible');
-      closeOverlay();
-      activeGame = null;
+      // Show a refined encouraging response
+      if (subtitle) {
+        subtitle.innerHTML = `<div style="color: var(--green); font-size: 18px; font-weight: 700; margin-bottom: 8px;">That's wonderful to hear! 🌟</div>
+          <div style="font-size: 13px; color: var(--text-2); line-height: 1.5;">
+            Great job taking care of your mental health. Remember, a quick break or game can work wonders when you're feeling low. 
+            You earned <strong style="color: var(--orange);">+10 XP</strong> bonus for feeling better! 
+            <br><br>💡 <em>Tip: Try a light walk or stretch to keep the momentum going.</em>
+          </div>`;
+      }
+
+      // Update mood to happy since they feel refreshed
+      State.set('today.mood', 'happy');
+      EventBus.emit('mood:changed', { mood: 'happy' });
 
       // Bonus XP for positive feedback
       EventBus.emit('xp:gained', { amount: 10, reason: 'Feeling great after game' });
 
-      // If user was stressed, suggest a workout
-      if (State.isStressedOrExhausted) {
-        showToast('Glad you feel better! Try a quick workout now 💪', '🏃', 3500);
-      }
+      // Auto-close after a moment so user can read the message
+      setTimeout(() => {
+        if (modal) modal.classList.remove('visible');
+        closeOverlay();
+        activeGame = null;
+      }, 4000);
     });
   }
 
   if (noBtn) {
     noBtn.addEventListener('click', () => {
-      if (modal) modal.classList.remove('visible');
-      closeOverlay();
-      activeGame = null;
-      showToast('Try another game — you\'ve got this! 🎮', '💪', 3000);
+      // Show a refined supportive response
+      if (subtitle) {
+        subtitle.innerHTML = `<div style="color: var(--blue); font-size: 18px; font-weight: 700; margin-bottom: 8px;">That's okay, take your time 💙</div>
+          <div style="font-size: 13px; color: var(--text-2); line-height: 1.5;">
+            It's completely fine. Here are some things that might help:
+            <br>🧘 <strong>Try the Zen Breather</strong> for deep calming breaths
+            <br>🎮 <strong>Play another mini game</strong> — sometimes a second round helps!
+            <br>😴 <strong>Take a short rest</strong> — close your eyes for 5 minutes
+            <br>🚶 <strong>Go for a light walk</strong> — fresh air works wonders
+            <br><br><em>Remember: your well-being matters most. 🌿</em>
+          </div>`;
+      }
+
+      // Auto-close after reading time
+      setTimeout(() => {
+        if (modal) modal.classList.remove('visible');
+        closeOverlay();
+        activeGame = null;
+      }, 6000);
     });
   }
 }
