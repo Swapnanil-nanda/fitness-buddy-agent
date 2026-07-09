@@ -138,8 +138,10 @@ A) CRAVING DETECTION: If user mentions craving junk food:
    → Suggest a SPECIFIC healthy alternative that fits their cuisine preference and diet type, with estimated calories.
 B) INGREDIENT/RECIPE MODE: If user lists ingredients:
    → Generate a simple recipe aligned to their cuisine preference. Wrap in [RECIPE_START] and [RECIPE_END] with valid JSON: {"name":"Recipe Name","steps":["step1","step2"],"calories":number,"protein":number,"carbs":number,"fat":number,"fiber":number}. Macros MUST be accurate. ONLY JSON inside the brackets; rest of reply must be conversational.
-C) STRESS/EXHAUSTION MODE: If mood is Stressed or Exhausted:
-   → Recommend light stretching, deep breathing, or games in the Play tab instead of heavy workouts.
+C) STRESS/EXHAUSTION/SAD MODE: If mood is sad, stressed, or exhausted:
+   → Do NOT suggest heavy exercise. Instead ask warmly how they're coping, then suggest the Play tab (mini games or Zen Breather). Tell them their workout tab will unlock once they feel better.
+   → If they tell you they played a game and feel better now, respond enthusiastically, confirm their Exercise tab is unlocked, and suggest a gentle first workout that fits their cuisine/diet context.
+   → If they say they still don't feel better, give a warm supportive message: suggest rest, a glass of water, or another game. Never pressure them to exercise.
 D) WORKOUT/CHALLENGE MODE: If user asks for workouts or exercise suggestions:
    → First ask them what type of exercise they prefer (e.g. cardio, strength, yoga, home workout).
    → Once they specify, suggest exactly ONE proper exercise with sets/reps or duration, and wrap it in a [CHALLENGE:Exercise name] tag.
@@ -474,6 +476,38 @@ export function initChat() {
   // ── Welcome message ──
   const welcomeText = '👋 Hey! I\'m FitBuddy, your AI fitness coach. Ask me about nutrition, workouts, recipes, or just tell me how you\'re feeling. I\'m here to help!';
   addMessage('ai', welcomeText);
+
+  // ── Mood-aware proactive messages ──
+
+  // When user sets a negative mood — ask how they're doing & suggest games
+  EventBus.on('mood:changed', ({ mood }) => {
+    const NEGATIVE = new Set(['sad', 'stressed', 'exhausted']);
+    if (!NEGATIVE.has(mood)) return;
+
+    const moodMessages = {
+      sad: '💙 Hey, I noticed you\'re feeling sad. That\'s completely okay — everyone has rough days. Why not try one of the mini games in the **Play tab**? Even a 30-second Zen Breather can shift your mood. I\'ll check in with you after! 🌿',
+      stressed: '🫂 You seem stressed right now. Before we tackle any workouts, let\'s take a breath first — literally! Try the **Zen Breather** game in the Play tab. It takes just 30 seconds and really helps. How does that sound?',
+      exhausted: '😴 Feeling exhausted? Your body is telling you something important. Rest is a form of fitness too! Try the **Play tab** for a gentle game or some guided breathing. Once you\'re feeling better, your workout tab will unlock. 💪'
+    };
+
+    const msg = moodMessages[mood];
+    if (msg) {
+      setTimeout(() => addMessage('ai', msg), 600);
+    }
+  });
+
+  // When user says "Yes, I feel better" after a game — unlock message + exercise invite
+  EventBus.on('mood:unlocked', () => {
+    const name = State.user.username ? `, ${State.user.username}` : '';
+    const msg = `🌟 That's awesome${name}! So glad the game helped you feel better! Your **Exercise tab is now unlocked** — head over whenever you're ready. Even a short walk or a light stretch counts. You've got this! 💪`;
+    setTimeout(() => addMessage('ai', msg), 400);
+  });
+
+  // When user says "No, still not feeling better" — supportive rest message
+  EventBus.on('mood:still-low', () => {
+    const msg = `💙 No worries at all — take all the time you need. Here\'s what I suggest:\n\n• 🧘 Try the **Zen Breather** for one more calming round\n• 😴 Close your eyes and rest for 5–10 minutes\n• 🥤 Drink a glass of water — it genuinely helps\n\nWhenever you feel ready, just come back and I\'ll be here. Your well-being matters most. 🌿`;
+    setTimeout(() => addMessage('ai', msg), 400);
+  });
 
   // ── Level Up Reward Generator ──
   EventBus.on('level:up', async ({ level, title }) => {

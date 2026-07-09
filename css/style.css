@@ -873,6 +873,60 @@ html, body {
 .fab.nutrition { background: var(--grad-nature); box-shadow: 0 4px 25px rgba(48, 209, 88, 0.3); }
 .fab.exercise { background: var(--grad-fire); box-shadow: 0 4px 25px rgba(255, 69, 58, 0.3); }
 
+/* ──── Exercise Tab: Mental-health Lock Overlay ──── */
+.exercise-lock-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-md);
+  animation: fade-in 0.3s ease;
+}
+
+.exercise-lock-overlay.hidden { display: none; }
+
+.exercise-lock-content {
+  text-align: center;
+  padding: 28px 24px;
+  max-width: 260px;
+}
+
+.exercise-lock-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  animation: pulse-dot 2s infinite;
+}
+
+.exercise-lock-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-1);
+  margin-bottom: 10px;
+  letter-spacing: -0.3px;
+}
+
+.exercise-lock-msg {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+/* Unlock flash animation — plays once when exercise tab unlocks */
+@keyframes unlock-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(48, 209, 88, 0); }
+  40%  { box-shadow: 0 0 0 12px rgba(48, 209, 88, 0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(48, 209, 88, 0); }
+}
+
+.exercise-unlocked-flash {
+  animation: unlock-flash 0.7s ease forwards;
+}
+
 /* ──── Daily Challenges ──── */
 .challenges-section { margin-bottom: 20px; }
 

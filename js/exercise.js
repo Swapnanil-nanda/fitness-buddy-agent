@@ -151,6 +151,52 @@ export function initExercise() {
   const customInput = document.getElementById('exercise-custom-name');
   const list        = document.getElementById('exercises-list');
 
+  // ── Mental-health lock overlay ──
+  const lockOverlay   = document.getElementById('exercise-lock-overlay');
+  const lockMsg       = document.getElementById('exercise-lock-msg');
+  const lockPlayBtn   = document.getElementById('exercise-lock-play-btn');
+  const exerciseTab   = document.getElementById('exercise-tab');
+
+  const LOCK_MOODS = new Set(['sad', 'stressed', 'exhausted']);
+
+  const LOCK_MESSAGES = {
+    sad:       'You seem a bit sad right now 💙 Head to the <strong>Play tab</strong> and try a mini game or the Zen Breather — once you\'re feeling better, workouts will unlock!',
+    stressed:  'You look stressed 🫂 Take a break with a Zen Breather or a quick game in the <strong>Play tab</strong> — workouts will unlock once you feel better.',
+    exhausted: 'You\'re exhausted 😴 Rest is the best workout right now. Try the <strong>Play tab</strong> to unwind, then come back when you\'re ready.'
+  };
+
+  /** Show or hide the lock overlay based on current mood. */
+  function syncLockOverlay(mood) {
+    if (LOCK_MOODS.has(mood)) {
+      if (lockMsg) lockMsg.innerHTML = LOCK_MESSAGES[mood] || LOCK_MESSAGES.stressed;
+      if (lockOverlay) lockOverlay.classList.remove('hidden');
+    } else {
+      if (lockOverlay) {
+        lockOverlay.classList.add('hidden');
+        // Brief green flash on the exercise tab button to signal unlock
+        const exTabBtn = document.querySelector('.tab-btn[data-tab="exercise"]');
+        if (exTabBtn) {
+          exTabBtn.classList.add('exercise-unlocked-flash');
+          setTimeout(() => exTabBtn.classList.remove('exercise-unlocked-flash'), 700);
+        }
+      }
+    }
+  }
+
+  // Apply on page load based on persisted mood
+  syncLockOverlay(State.today.mood || 'neutral');
+
+  // Re-evaluate whenever mood changes
+  EventBus.on('mood:changed', ({ mood }) => syncLockOverlay(mood));
+
+  // "Go to Play tab" shortcut button inside the lock overlay
+  if (lockPlayBtn) {
+    lockPlayBtn.addEventListener('click', () => {
+      const playTabBtn = document.querySelector('.tab-btn[data-tab="play"]');
+      if (playTabBtn) playTabBtn.click();
+    });
+  }
+
   // ── Show custom name field when Other is selected ──
   actSelect.addEventListener('change', () => {
     if (actSelect.value === 'other') {
@@ -163,9 +209,9 @@ export function initExercise() {
 
   // ── Open modal (Mental-health locking enforced) ──
   addBtn.addEventListener('click', () => {
-    if (State.isStressedOrExhausted || State.today.mood === 'sad') {
-      showToast('Workout locked for mental health recovery. Please rest today!', '🧠');
-      return; // Lock exercise logging
+    if (LOCK_MOODS.has(State.today.mood)) {
+      showToast('Workouts are locked right now 🧠 Play a game first — you\'ve got this!', '💙');
+      return;
     }
 
     editingExerciseId = null;

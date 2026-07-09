@@ -192,6 +192,19 @@
 
       <!-- Exercise Tab -->
       <div id="exercise-tab" class="tab-pane">
+        <!-- Mental-health lock overlay — shown when mood is sad/stressed/exhausted -->
+        <div id="exercise-lock-overlay" class="exercise-lock-overlay hidden">
+          <div class="exercise-lock-content">
+            <div class="exercise-lock-icon">🧠</div>
+            <div class="exercise-lock-title">Workout Locked</div>
+            <div class="exercise-lock-msg" id="exercise-lock-msg">
+              You're not feeling your best right now. Head to the <strong>Play tab</strong> and try a mini game or the Zen Breather — then come back here!
+            </div>
+            <button class="btn btn-secondary" id="exercise-lock-play-btn" style="margin-top:16px;width:auto;padding:10px 22px;font-size:13px;">
+              🎮 Go to Play tab
+            </button>
+          </div>
+        </div>
         <div class="summary-grid" id="exercise-summary">
           <div class="summary-card"><div class="value" id="ex-burned">0</div><div class="label">Kcal Burned</div></div>
           <div class="summary-card"><div class="value" id="ex-count">0</div><div class="label">Workouts</div></div>

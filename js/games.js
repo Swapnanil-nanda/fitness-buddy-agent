@@ -172,25 +172,27 @@ function initPostgameModal() {
       if (subtitle) {
         subtitle.innerHTML = `<div style="color: var(--green); font-size: 18px; font-weight: 700; margin-bottom: 8px;">That's wonderful to hear! 🌟</div>
           <div style="font-size: 13px; color: var(--text-2); line-height: 1.5;">
-            Great job taking care of your mental health. Remember, a quick break or game can work wonders when you're feeling low. 
-            You earned <strong style="color: var(--orange);">+10 XP</strong> bonus for feeling better! 
-            <br><br>💡 <em>Tip: Try a light walk or stretch to keep the momentum going.</em>
+            Great job taking care of your mental health! You earned <strong style="color: var(--orange);">+10 XP</strong> bonus for feeling better!
+            <br><br>💪 <em>Your workout tab is now <strong style="color: var(--green);">unlocked</strong> — go crush it!</em>
           </div>`;
       }
 
-      // Update mood to happy since they feel refreshed
+      // Update mood to happy — this unlocks the exercise tab via mood:changed listener
       State.set('today.mood', 'happy');
       EventBus.emit('mood:changed', { mood: 'happy' });
 
       // Bonus XP for positive feedback
       EventBus.emit('xp:gained', { amount: 10, reason: 'Feeling great after game' });
 
+      // Signal chat module to send a personalised "you can now exercise" message
+      EventBus.emit('mood:unlocked', { previousMood: State.today.mood });
+
       // Auto-close after a moment so user can read the message
       setTimeout(() => {
         if (modal) modal.classList.remove('visible');
         closeOverlay();
         activeGame = null;
-      }, 4000);
+      }, 3500);
     });
   }
 
@@ -200,14 +202,17 @@ function initPostgameModal() {
       if (subtitle) {
         subtitle.innerHTML = `<div style="color: var(--blue); font-size: 18px; font-weight: 700; margin-bottom: 8px;">That's okay, take your time 💙</div>
           <div style="font-size: 13px; color: var(--text-2); line-height: 1.5;">
-            It's completely fine. Here are some things that might help:
+            It's completely fine. Here are a few things that might still help:
             <br>🧘 <strong>Try the Zen Breather</strong> for deep calming breaths
             <br>🎮 <strong>Play another mini game</strong> — sometimes a second round helps!
             <br>😴 <strong>Take a short rest</strong> — close your eyes for 5 minutes
-            <br>🚶 <strong>Go for a light walk</strong> — fresh air works wonders
-            <br><br><em>Remember: your well-being matters most. 🌿</em>
+            <br>🚶 <strong>A gentle walk</strong> — even 5 minutes of fresh air works wonders
+            <br><br><em>No pressure. Your well-being comes first. 🌿</em>
           </div>`;
       }
+
+      // Signal chat module to send a rest/game suggestion
+      EventBus.emit('mood:still-low', {});
 
       // Auto-close after reading time
       setTimeout(() => {
