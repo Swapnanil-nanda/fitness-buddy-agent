@@ -286,7 +286,8 @@ function addMessage(role, content, extra = '') {
   }
 
   wrapper.appendChild(bubble);
-  $messages.appendChild(wrapper);
+  // Insert before the typing indicator so it stays at the bottom
+  $messages.insertBefore(wrapper, $typing);
 
   // Auto-scroll to latest message
   $messages.scrollTop = $messages.scrollHeight;
