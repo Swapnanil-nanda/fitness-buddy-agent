@@ -272,84 +272,91 @@
 <!-- ═══════ MODALS ═══════ -->
 
 <!-- Onboarding Modal -->
-<div class="modal-overlay visible" id="onboarding-modal">
+<div class="modal-overlay" id="onboarding-modal">
   <div class="modal">
-    <div class="text-center" style="margin-bottom: 20px">
-      <div style="font-size: 48px; margin-bottom: 8px">🏋️</div>
-      <div class="modal-title">Welcome to FitBuddy</div>
-      <div class="modal-subtitle">Let's personalize your experience in seconds.</div>
-    </div>
-    <div class="form-group">
-      <label class="form-label" for="onboard-username">Username</label>
-      <input class="form-input" type="text" id="onboard-username" placeholder="e.g. alex123">
-    </div>
-    <div class="form-group">
-      <label class="form-label" for="onboard-gender">Gender</label>
-      <select class="form-select" id="onboard-gender">
-        <option value="male">Male</option>
-        <option value="female">Female</option>
-      </select>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label" for="onboard-weight">Weight (kg)</label>
-        <input class="form-input" type="number" id="onboard-weight" placeholder="70" min="20" max="300">
+    <!-- Main Sign Up / Sign In Form -->
+    <div id="onboard-main-section">
+      <div class="text-center" style="margin-bottom: 20px">
+        <div style="font-size: 48px; margin-bottom: 8px">🏋️</div>
+        <div class="modal-title">Welcome to FitBuddy</div>
+        <div class="modal-subtitle">Let's personalize your experience in seconds.</div>
       </div>
       <div class="form-group">
-        <label class="form-label" for="onboard-height">Height (cm)</label>
-        <input class="form-input" type="number" id="onboard-height" placeholder="175" min="100" max="250">
+        <label class="form-label" for="onboard-username">Username</label>
+        <input class="form-input" type="text" id="onboard-username" placeholder="e.g. alex123">
       </div>
+      <div class="form-group">
+        <label class="form-label" for="onboard-password">Password</label>
+        <input class="form-input" type="password" id="onboard-password" placeholder="••••••••">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="onboard-gender">Gender</label>
+        <select class="form-select" id="onboard-gender">
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="onboard-weight">Weight (kg)</label>
+          <input class="form-input" type="number" id="onboard-weight" placeholder="70" min="20" max="300">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="onboard-height">Height (cm)</label>
+          <input class="form-input" type="number" id="onboard-height" placeholder="175" min="100" max="250">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="onboard-age">Age</label>
+        <input class="form-input" type="number" id="onboard-age" placeholder="25" min="10" max="120">
+      </div>
+      <div class="computed-display" id="bmi-display" style="display:none">
+        <span class="label">Your BMI</span>
+        <span>
+          <span class="value" id="bmi-value">—</span>
+          <span class="bmi-indicator normal" id="bmi-indicator">Normal</span>
+        </span>
+      </div>
+      <div class="computed-display" id="goal-display" style="display:none">
+        <span class="label">Suggested Goal</span>
+        <span class="value" id="goal-value" style="font-size:14px">—</span>
+      </div>
+      <div class="computed-display" id="tdee-display" style="display:none">
+        <span class="label">Daily Calories</span>
+        <span class="value" id="tdee-value">—</span>
+      </div>
+      <div class="form-group" style="margin-top:16px">
+        <label class="form-label" for="onboard-cuisine">Preferred Cuisine</label>
+        <select class="form-select" id="onboard-cuisine">
+          <option value="any">Any / No preference</option>
+          <option value="indian">Indian</option>
+          <option value="mediterranean">Mediterranean</option>
+          <option value="east-asian">East Asian (Chinese, Japanese, Korean)</option>
+          <option value="southeast-asian">Southeast Asian (Thai, Vietnamese, Filipino)</option>
+          <option value="middle-eastern">Middle Eastern</option>
+          <option value="mexican">Mexican / Latin American</option>
+          <option value="american">American / Western</option>
+          <option value="african">African</option>
+          <option value="european">European</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="onboard-diet">Diet Type</label>
+        <select class="form-select" id="onboard-diet">
+          <option value="no-restriction">No restriction (everything)</option>
+          <option value="vegetarian">Vegetarian</option>
+          <option value="vegan">Vegan</option>
+          <option value="eggetarian">Eggetarian (Veg + Eggs)</option>
+          <option value="pescatarian">Pescatarian (Fish only)</option>
+          <option value="keto">Keto / Low-carb</option>
+          <option value="gluten-free">Gluten-free</option>
+          <option value="dairy-free">Dairy-free</option>
+          <option value="halal">Halal</option>
+          <option value="kosher">Kosher</option>
+        </select>
+      </div>
+      <button class="btn btn-primary mt-16" id="onboard-submit" disabled>Get Started →</button>
     </div>
-    <div class="form-group">
-      <label class="form-label" for="onboard-age">Age</label>
-      <input class="form-input" type="number" id="onboard-age" placeholder="25" min="10" max="120">
-    </div>
-    <div class="computed-display" id="bmi-display" style="display:none">
-      <span class="label">Your BMI</span>
-      <span>
-        <span class="value" id="bmi-value">—</span>
-        <span class="bmi-indicator normal" id="bmi-indicator">Normal</span>
-      </span>
-    </div>
-    <div class="computed-display" id="goal-display" style="display:none">
-      <span class="label">Suggested Goal</span>
-      <span class="value" id="goal-value" style="font-size:14px">—</span>
-    </div>
-    <div class="computed-display" id="tdee-display" style="display:none">
-      <span class="label">Daily Calories</span>
-      <span class="value" id="tdee-value">—</span>
-    </div>
-    <div class="form-group" style="margin-top:16px">
-      <label class="form-label" for="onboard-cuisine">Preferred Cuisine</label>
-      <select class="form-select" id="onboard-cuisine">
-        <option value="any">Any / No preference</option>
-        <option value="indian">Indian</option>
-        <option value="mediterranean">Mediterranean</option>
-        <option value="east-asian">East Asian (Chinese, Japanese, Korean)</option>
-        <option value="southeast-asian">Southeast Asian (Thai, Vietnamese, Filipino)</option>
-        <option value="middle-eastern">Middle Eastern</option>
-        <option value="mexican">Mexican / Latin American</option>
-        <option value="american">American / Western</option>
-        <option value="african">African</option>
-        <option value="european">European</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label" for="onboard-diet">Diet Type</label>
-      <select class="form-select" id="onboard-diet">
-        <option value="no-restriction">No restriction (everything)</option>
-        <option value="vegetarian">Vegetarian</option>
-        <option value="vegan">Vegan</option>
-        <option value="eggetarian">Eggetarian (Veg + Eggs)</option>
-        <option value="pescatarian">Pescatarian (Fish only)</option>
-        <option value="keto">Keto / Low-carb</option>
-        <option value="gluten-free">Gluten-free</option>
-        <option value="dairy-free">Dairy-free</option>
-        <option value="halal">Halal</option>
-        <option value="kosher">Kosher</option>
-      </select>
-    </div>
-    <button class="btn btn-primary mt-16" id="onboard-submit" disabled>Get Started →</button>
   </div>
 </div>
 
@@ -445,7 +452,11 @@
     <div class="modal-subtitle">Update your personal biometrics</div>
     <div class="form-group">
       <label class="form-label" for="settings-username">Username (Account Name)</label>
-      <input class="form-input" type="text" id="settings-username" readonly style="opacity: 0.6; cursor: not-allowed; background: rgba(255,255,255,0.02);">
+      <input class="form-input" type="text" id="settings-username" placeholder="e.g. alex123">
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="settings-password">Password</label>
+      <input class="form-input" type="password" id="settings-password" placeholder="••••••••">
     </div>
     
     <div class="form-row" style="display: flex; gap: 10px;">

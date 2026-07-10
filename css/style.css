@@ -1657,6 +1657,9 @@ html, body {
   }
   #chat-messages { padding: 16px; }
   #chat-input-bar { padding: 12px 16px; }
+  .form-input, .form-select {
+    font-size: 16px !important;
+  }
 }
 
 /* ──── Utility ──── */

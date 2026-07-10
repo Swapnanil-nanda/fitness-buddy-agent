@@ -7,6 +7,16 @@
     "start": "node server.js",
     "dev": "node server.js"
   },
-  "keywords": ["fitness", "ai", "ibm", "granite", "watsonx", "coach"],
-  "license": "MIT"
+  "keywords": [
+    "fitness",
+    "ai",
+    "ibm",
+    "granite",
+    "watsonx",
+    "coach"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "nodemailer": "^9.0.3"
+  }
 }

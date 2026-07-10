@@ -30,6 +30,7 @@ const GOAL_ADJUSTMENTS = {
 export function initOnboarding() {
   // ── DOM References ──
   const usernameInput = document.getElementById('onboard-username');
+  const passwordInput = document.getElementById('onboard-password');
   const weightInput  = document.getElementById('onboard-weight');
   const heightInput  = document.getElementById('onboard-height');
   const ageInput     = document.getElementById('onboard-age');
@@ -47,11 +48,13 @@ export function initOnboarding() {
   const modal        = document.getElementById('onboarding-modal');
 
   // ── Recalculate on every input change, blur, or interaction ──
-  const inputs = [usernameInput, weightInput, heightInput, ageInput, genderSelect];
+  const inputs = [usernameInput, passwordInput, weightInput, heightInput, ageInput, genderSelect];
   inputs.forEach(el => {
-    el.addEventListener('input', recalculate);
-    el.addEventListener('change', recalculate);
-    el.addEventListener('blur', recalculate);
+    if (el) {
+      el.addEventListener('input', recalculate);
+      el.addEventListener('change', recalculate);
+      el.addEventListener('blur', recalculate);
+    }
   });
   genderSelect.addEventListener('change', recalculate);
 
@@ -65,6 +68,7 @@ export function initOnboarding() {
    */
   function recalculate() {
     const username = usernameInput.value.trim();
+    const password = passwordInput ? passwordInput.value : '';
     const weight = parseFloat(weightInput.value);
     const height = parseFloat(heightInput.value);
     const age    = parseInt(ageInput.value, 10);
@@ -72,16 +76,18 @@ export function initOnboarding() {
 
     // ── Validate inputs ──
     const validUsername = username.length >= 2;
+    const validPassword = password.length >= 4;
     const validWeight = weight >= 20 && weight <= 300;
     const validHeight = height >= 100 && height <= 250;
     const validAge    = age >= 10 && age <= 120;
-    const allValid    = validUsername && validWeight && validHeight && validAge;
+    const allValid    = validUsername && validPassword && validWeight && validHeight && validAge;
 
     // Enable / disable submit
     submitBtn.disabled = !allValid;
 
     // Toggle valid/invalid visual feedback classes if user has typed something
     usernameInput.classList.toggle('invalid-input', username.length > 0 && !validUsername);
+    if (passwordInput) passwordInput.classList.toggle('invalid-input', password.length > 0 && !validPassword);
     weightInput.classList.toggle('invalid-input', weightInput.value.length > 0 && !validWeight);
     heightInput.classList.toggle('invalid-input', heightInput.value.length > 0 && !validHeight);
     ageInput.classList.toggle('invalid-input', ageInput.value.length > 0 && !validAge);
@@ -196,51 +202,89 @@ export function initOnboarding() {
     if (!_computed) return;
 
     const username = usernameInput.value.trim();
-    if (!username) return;
+    const password = passwordInput ? passwordInput.value.trim() : '';
+    if (!username || !password) {
+      showToast('Username and password are required!', '⚠️');
+      return;
+    }
 
     submitBtn.disabled = true;
     submitBtn.textContent = 'Syncing...';
 
-    try {
-      const endpoint = `${getApiBaseUrl()}/api/user-data?username=${encodeURIComponent(username)}`;
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout fail-safe
-      
-      const res = await fetch(endpoint, { signal: controller.signal, headers: dbHeaders() });
-      clearTimeout(timeoutId);
-      const resData = await res.json();
-      
-      if (resData.success && resData.data) {
-        localStorage.setItem('fitbuddy_state', JSON.stringify(resData.data));
-        window.location.reload();
-        return;
-      }
-    } catch (e) {
-      console.warn('DB check failed or timed out, creating local user first:', e);
-    }
-
     const { bmi, goalKey, adjustedTDEE, proteinG, carbsG, fatG, weight, height, age, gender } = _computed;
-
     const cuisineEl = document.getElementById('onboard-cuisine');
     const dietEl    = document.getElementById('onboard-diet');
 
-    State.patch('user', {
-      username,
-      weight,
-      height,
-      age,
-      gender,
-      bmi,
-      goal: goalKey,
-      tdee: adjustedTDEE,
-      macros: { protein: proteinG, carbs: carbsG, fat: fatG },
-      cuisine: cuisineEl ? cuisineEl.value : 'any',
-      diet:    dietEl    ? dietEl.value    : 'no-restriction'
-    });
+    const proposedState = {
+      user: {
+        username,
+        weight,
+        height,
+        age,
+        gender,
+        bmi,
+        goal: goalKey,
+        tdee: adjustedTDEE,
+        macros: { protein: proteinG, carbs: carbsG, fat: fatG },
+        cuisine: cuisineEl ? cuisineEl.value : 'any',
+        diet:    dietEl    ? dietEl.value    : 'no-restriction',
+        userId: ''
+      },
+      today: {
+        date: new Date().toISOString().split('T')[0],
+        meals: [],
+        exercises: [],
+        water: 0,
+        sleep: 0,
+        mood: 'neutral',
+        xpEarned: 0,
+        challenges: []
+      },
+      xp: {
+        current: 0,
+        level: 1,
+        total: 0
+      },
+      settings: {
+        mode: 'proxy'
+      },
+      chatHistory: [],
+      onboarded: true
+    };
 
-    State.set('onboarded', true);
-    modal.classList.remove('visible');
-    showToast(`Account "${username}" created! Target: ${adjustedTDEE} kcal.`, '🎉', 3500);
+    try {
+      const endpoint = `${getApiBaseUrl()}/api/user-data`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: dbHeaders(),
+        body: JSON.stringify({ username, password, state: proposedState })
+      });
+      
+      const resData = await response.json();
+      
+      if (!response.ok) {
+        showToast(resData.error || 'Authentication failed!', '🔒');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Get Started';
+        return;
+      }
+
+      localStorage.setItem('fitbuddy_password', password);
+      
+      const finalState = resData.state || proposedState;
+      
+      const { reloadState } = await import('./app.js');
+      reloadState(finalState, password);
+      
+      modal.classList.remove('visible');
+      showToast(resData.exists ? `Welcome back, ${username}!` : `Account "${username}" created!`, '🎉');
+      
+    } catch (e) {
+      console.error('Authentication failed:', e);
+      showToast('Could not connect to server. Please try again.', '⚠️');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Get Started';
+    }
   });
 }

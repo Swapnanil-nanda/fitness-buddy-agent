@@ -99,14 +99,14 @@ async function getIAMToken(apiKey) {
 /**
  * Proxy / Local mode — simple POST with { prompt, max_tokens }.
  */
-async function callProxyOrLocal(endpoint, prompt, maxTokens) {
+async function callProxyOrLocal(endpoint, message, history, context, maxTokens) {
   const { signal, clear } = createTimeout();
 
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, max_tokens: maxTokens }),
+      body: JSON.stringify({ message, history, context, max_tokens: maxTokens }),
       signal
     });
 
@@ -220,10 +220,10 @@ async function callDirect(apiKey, projectId, region, prompt, maxTokens) {
  * @param {number} maxTokens   — Maximum tokens to generate (default 400)
  * @returns {Promise<{success: boolean, text?: string, error?: string}>}
  */
-export async function generateResponse(prompt, maxTokens = 400) {
+export async function generateResponse(message, history = [], context = {}, maxTokens = 400) {
   const endpoint = `${getApiBaseUrl()}/api/chat`;
   
-  return callProxyOrLocal(endpoint, prompt, maxTokens);
+  return callProxyOrLocal(endpoint, message, history, context, maxTokens);
 }
 
 /**

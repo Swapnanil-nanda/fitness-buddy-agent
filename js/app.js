@@ -102,11 +102,12 @@ async function syncToDatabase() {
   if (!username) return;
   try {
     const endpoint = `${getApiBaseUrl()}/api/user-data`;
+    const password = localStorage.getItem('fitbuddy_password') || '';
     
     await fetch(endpoint, {
       method: 'POST',
       headers: dbHeaders(),
-      body: JSON.stringify({ username, state: _state })
+      body: JSON.stringify({ username, password, state: _state })
     });
   } catch (e) {
     console.warn('Database sync failed:', e);
@@ -123,29 +124,46 @@ function debounce(fn, delay) {
 
 const debouncedSyncToDatabase = debounce(syncToDatabase, 1000);
 
-export async function loadUserDataFromDB(username) {
+export async function loadUserDataFromDB(username, password) {
   try {
+    const activePassword = password || localStorage.getItem('fitbuddy_password') || '';
     const endpoint = `${getApiBaseUrl()}/api/user-data?username=${encodeURIComponent(username)}`;
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5 second timeout fail-safe
     
-    const res = await fetch(endpoint, { signal: controller.signal, headers: dbHeaders() });
+    const headers = {
+      ...dbHeaders(),
+      'X-User-Password': activePassword
+    };
+    
+    const res = await fetch(endpoint, { signal: controller.signal, headers });
     clearTimeout(timeoutId);
     const resData = await res.json();
-    if (resData.success && resData.data) {
-      _state = deepMerge(createDefaultState(), resData.data);
-      const todayStr = new Date().toISOString().split('T')[0];
-      if (_state.today.date !== todayStr) {
-        _state.today = freshDay();
-        _state.today.date = todayStr;
+    
+    if (!res.ok) {
+      throw new Error(resData.error || 'Failed to authenticate');
+    }
+    
+    if (resData.success) {
+      if (activePassword) {
+        localStorage.setItem('fitbuddy_password', activePassword);
       }
-      localStorage.setItem('fitbuddy_state', JSON.stringify(_state));
-      EventBus.emit('state:changed', { path: '', value: _state });
-      console.log(`📡 Fetched user "${username}" from database!`);
+      if (resData.data) {
+        _state = deepMerge(createDefaultState(), resData.data);
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (_state.today.date !== todayStr) {
+          _state.today = freshDay();
+          _state.today.date = todayStr;
+        }
+        localStorage.setItem('fitbuddy_state', JSON.stringify(_state));
+        EventBus.emit('state:changed', { path: '', value: _state });
+        console.log(`📡 Fetched user "${username}" from database!`);
+      }
     }
   } catch (e) {
-    console.warn('Failed to load user data from DB or timed out:', e);
+    console.warn('Failed to load user data from DB:', e.message);
+    throw e;
   }
 }
 
@@ -219,6 +237,7 @@ export const State = {
   reset() {
     _state = createDefaultState();
     localStorage.removeItem('fitbuddy_state');
+    localStorage.removeItem('fitbuddy_password');
     EventBus.emit('state:changed', { path: '', value: _state });
   },
 
@@ -243,6 +262,15 @@ export const State = {
     return m === 'stressed' || m === 'exhausted' || m === 'sad';
   }
 };
+
+export function reloadState(newState, password) {
+  _state = newState;
+  localStorage.setItem('fitbuddy_state', JSON.stringify(_state));
+  if (password) {
+    localStorage.setItem('fitbuddy_password', password);
+  }
+  EventBus.emit('state:changed', { path: '', value: _state });
+}
 
 // ──── Deep Merge Utility ────
 function deepMerge(target, source) {
@@ -293,10 +321,17 @@ function initLabEntry() {
 
   enterLabBtn.dataset.bound = 'true';
   enterLabBtn.addEventListener('click', () => {
-    labPage.classList.remove('visible');
-    window.setTimeout(() => {
-      labPage.style.display = 'none';
-    }, 600);
+    if (!State.data.onboarded) {
+      const onboardingModal = document.getElementById('onboarding-modal');
+      if (onboardingModal) {
+        onboardingModal.classList.add('visible');
+      }
+    } else {
+      labPage.classList.remove('visible');
+      window.setTimeout(() => {
+        labPage.style.display = 'none';
+      }, 600);
+    }
   });
 }
 
@@ -325,7 +360,15 @@ async function boot() {
 
   // Load from DB if username exists to ensure sync
   if (State.user.username) {
-    await loadUserDataFromDB(State.user.username);
+    try {
+      await loadUserDataFromDB(State.user.username);
+    } catch (err) {
+      console.warn('DB loading failed on startup:', err.message);
+      if (err.message.toLowerCase().includes('password') || err.message.toLowerCase().includes('authenticate')) {
+        State.reset();
+        window.location.reload();
+      }
+    }
   }
 
   // ── Periodic Day Rollover Checker ──
@@ -460,6 +503,8 @@ function initSettings() {
     // Populate fields from State.user
     const user = State.user;
     document.getElementById('settings-username').value = user.username || '';
+    const pwdInput = document.getElementById('settings-password');
+    if (pwdInput) pwdInput.value = '';
     document.getElementById('settings-weight').value = user.weight || '';
     document.getElementById('settings-height').value = user.height || '';
     document.getElementById('settings-age').value = user.age || '';
@@ -481,7 +526,12 @@ function initSettings() {
     if (e.target === modal) modal.classList.remove('visible');
   });
 
-  save.addEventListener('click', () => {
+  save.addEventListener('click', async () => {
+    const username = document.getElementById('settings-username').value.trim();
+    if (!username) {
+      showToast('Username is required!', '⚠️');
+      return;
+    }
     const weight = parseFloat(document.getElementById('settings-weight').value) || 0;
     const height = parseFloat(document.getElementById('settings-height').value) || 0;
     const age = parseInt(document.getElementById('settings-age').value, 10) || 0;
@@ -495,10 +545,22 @@ function initSettings() {
     const waist = parseFloat(document.getElementById('settings-waist').value) || 0;
     const hip = parseFloat(document.getElementById('settings-hip').value) || 0;
 
+    const pwdInput = document.getElementById('settings-password');
+    const newPassword = pwdInput ? pwdInput.value.trim() : '';
+    if (newPassword && newPassword.length < 4) {
+      showToast('New password must be at least 4 characters!', '⚠️');
+      return;
+    }
+
+    const currentPassword = localStorage.getItem('fitbuddy_password') || '';
+
     // Recalculate BMI, TDEE, Macros
     const metrics = calculateUserMetrics({ weight, height, age, gender, goal, activity });
 
-    State.patch('user', {
+    // Create a clone of the current state and apply the patches
+    const proposedState = JSON.parse(JSON.stringify(_state));
+    Object.assign(proposedState.user, {
+      username,
       weight,
       height,
       age,
@@ -514,8 +576,50 @@ function initSettings() {
       ...metrics
     });
 
-    modal.classList.remove('visible');
-    showToast('Profile & Biometrics saved!', '👤');
+    save.disabled = true;
+    save.textContent = 'Saving...';
+
+    try {
+      const endpoint = `${getApiBaseUrl()}/api/user-data`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: dbHeaders(),
+        body: JSON.stringify({
+          username: proposedState.user.username,
+          password: currentPassword,
+          newPassword: newPassword || undefined,
+          state: proposedState
+        })
+      });
+
+      const resData = await response.json();
+      save.disabled = false;
+      save.textContent = 'Save Settings';
+
+      if (!response.ok) {
+        showToast(resData.error || 'Failed to update settings!', '🔒');
+        return;
+      }
+
+      // Success! Update password in local storage if changed
+      if (newPassword) {
+        localStorage.setItem('fitbuddy_password', newPassword);
+      }
+
+      const finalState = resData.state || proposedState;
+      _state = finalState;
+      localStorage.setItem('fitbuddy_state', JSON.stringify(_state));
+      EventBus.emit('state:changed', { path: '', value: _state });
+
+      modal.classList.remove('visible');
+      showToast('Profile & Biometrics saved!', '👤');
+
+    } catch (e) {
+      console.error('Update settings failed:', e);
+      showToast('Could not connect to server. Please try again.', '⚠️');
+      save.disabled = false;
+      save.textContent = 'Save Settings';
+    }
   });
 }
 
