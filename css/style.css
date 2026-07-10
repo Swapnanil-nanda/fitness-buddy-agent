@@ -1607,6 +1607,9 @@ html, body {
     width: 100% !important;
     height: 100% !important;
     overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 90px !important;
+    box-sizing: border-box !important;
   }
   #left-panel.active {
     display: flex !important;
@@ -1621,6 +1624,20 @@ html, body {
   }
   .toast {
     bottom: 80px !important;
+  }
+  .bg-blob {
+    display: none !important;
+  }
+  * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .glass-card, .modal, #mobile-nav, .lab-overlay, .exercise-lock-overlay {
+    background: #111111 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+  .modal-overlay {
+    background: rgba(0, 0, 0, 0.85) !important;
   }
 }
 
