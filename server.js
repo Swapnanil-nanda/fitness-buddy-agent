@@ -473,7 +473,12 @@ const DB_TOKEN = require('crypto').randomBytes(32).toString('hex');
 // API Proxy Server
 const apiServer = http.createServer(async (req, res) => {
   // CORS
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-DB-Token');
 
@@ -482,11 +487,11 @@ const apiServer = http.createServer(async (req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname.replace(/\/$/, '');
 
-  // ── Token handshake endpoint — localhost only ──
+  // ── Token handshake endpoint ──
   // The app calls this once on boot to get the session DB token.
   if (req.method === 'GET' && pathname === '/api/db-token') {
     const host = req.headers.host || '';
-    const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1');
+    const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1') || host.startsWith('192.168.') || host.startsWith('10.') || host.startsWith('172.');
     if (!isLocal) {
       res.writeHead(403, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Forbidden' }));

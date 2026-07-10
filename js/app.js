@@ -19,10 +19,9 @@ export const EventBus = {
 };
 
 export function getApiBaseUrl() {
-  const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  if (!isLocalHost) return '';
+  const staticPort = Number(window.location.port);
+  if (!staticPort) return '';
 
-  const staticPort = Number(window.location.port || 3000);
   const apiPort = staticPort === 3000 ? 3001 : staticPort + 1;
   return `${window.location.protocol}//${window.location.hostname}:${apiPort}`;
 }
