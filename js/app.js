@@ -393,6 +393,7 @@ async function boot() {
   initSettings();
   initLogout();
   initMobileNav();
+  initMobilePanelMenu();
 
   console.log('🏋️ FitBuddy initialized');
 }
@@ -556,6 +557,53 @@ function initMobileNav() {
       });
     }
   }
+}
+
+function initMobilePanelMenu() {
+  const menuBtn = document.getElementById('mobile-panel-menu-btn');
+  const menuContent = document.getElementById('mobile-panel-menu-content');
+  if (!menuBtn || !menuContent) return;
+
+  // Toggle dropdown on click
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    menuContent.classList.toggle('show');
+  });
+
+  // Close dropdown on clicking outside
+  document.addEventListener('click', () => {
+    menuContent.classList.remove('show');
+  });
+
+  // Handle dropdown link clicks
+  const links = menuContent.querySelectorAll('a');
+  const panels = {
+    left: document.getElementById('left-panel'),
+    center: document.getElementById('center-panel'),
+    right: document.getElementById('right-panel')
+  };
+  const navButtons = document.querySelectorAll('.mobile-nav-btn');
+
+  links.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = link.dataset.target;
+
+      menuContent.classList.remove('show');
+
+      // Update mobile bottom nav active button
+      navButtons.forEach(b => b.classList.toggle('active', b.dataset.target === target));
+
+      // Toggle active panels
+      Object.entries(panels).forEach(([key, panel]) => {
+        if (panel) {
+          panel.classList.toggle('active', key === target);
+        }
+      });
+      
+      showToast(`Switched to ${link.textContent.split(' ')[1]}`, '🔄');
+    });
+  });
 }
 
 // ──── Boot ────
