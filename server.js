@@ -490,13 +490,6 @@ const apiServer = http.createServer(async (req, res) => {
   // ── Token handshake endpoint ──
   // The app calls this once on boot to get the session DB token.
   if (req.method === 'GET' && pathname === '/api/db-token') {
-    const host = req.headers.host || '';
-    const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1') || host.startsWith('192.168.') || host.startsWith('10.') || host.startsWith('172.');
-    if (!isLocal) {
-      res.writeHead(403, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Forbidden' }));
-      return;
-    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ token: DB_TOKEN }));
     return;
