@@ -46,10 +46,18 @@ export function initOnboarding() {
   const tdeeValue    = document.getElementById('tdee-value');
   const modal        = document.getElementById('onboarding-modal');
 
-  // ── Recalculate on every input change ──
+  // ── Recalculate on every input change, blur, or interaction ──
   const inputs = [usernameInput, weightInput, heightInput, ageInput, genderSelect];
-  inputs.forEach(el => el.addEventListener('input', recalculate));
+  inputs.forEach(el => {
+    el.addEventListener('input', recalculate);
+    el.addEventListener('change', recalculate);
+    el.addEventListener('blur', recalculate);
+  });
   genderSelect.addEventListener('change', recalculate);
+
+  // Extra fail-safe: recalculate on any touch or click inside the modal to capture autofills
+  modal.addEventListener('click', recalculate);
+  modal.addEventListener('touchstart', recalculate, { passive: true });
 
   /**
    * Core recalculation pipeline.
