@@ -19,11 +19,7 @@ export const EventBus = {
 };
 
 export function getApiBaseUrl() {
-  const staticPort = Number(window.location.port);
-  if (!staticPort) return '';
-
-  const apiPort = staticPort === 3000 ? 3001 : staticPort + 1;
-  return `${window.location.protocol}//${window.location.hostname}:${apiPort}`;
+  return '';
 }
 
 // ── Session DB token — fetched once from /api/db-token at boot (local only).

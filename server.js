@@ -10,8 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const PORT = Number(process.env.PORT || 3001);
-const STATIC_PORT = Number(process.env.STATIC_PORT || 3000);
+const PORT = Number(process.env.PORT || 3000);
 
 // ── Database lives in .data/ — outside the static-served directory.
 // This folder is gitignored and never served to clients.
@@ -470,238 +469,229 @@ E) ETHNIC / UNFAMILIAR CUISINE QUESTIONS: If user asks about foods from any cult
 // All /api/user-data calls must include it in the X-DB-Token header.
 const DB_TOKEN = require('crypto').randomBytes(32).toString('hex');
 
-// API Proxy Server
-const apiServer = http.createServer(async (req, res) => {
-  // CORS
-  const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-DB-Token');
-
-  if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
-
+// Combined Static Asset & API HTTP Server
+const server = http.createServer(async (req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname.replace(/\/$/, '');
 
-  // ── Token handshake endpoint ──
-  // The app calls this once on boot to get the session DB token.
-  if (req.method === 'GET' && pathname === '/api/db-token') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ token: DB_TOKEN }));
-    return;
-  }
-
-  // ── Token guard for all /api/user-data calls ──
-  function isValidToken(request) {
-    return request.headers['x-db-token'] === DB_TOKEN;
-  }
-
-  // ── Database Routes ──
-  if (req.method === 'GET' && pathname === '/api/user-data') {
-    if (!isValidToken(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
+  // ──── 1. API Route Requests ────
+  if (pathname.startsWith('/api')) {
+    // CORS
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
     }
-    const username = parsedUrl.searchParams.get('username');
-    if (!username) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Username is required' }));
-      return;
-    }
-    const password = req.headers['x-user-password'];
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-DB-Token');
 
-    const userRecord = db.findByUsername(username);
-    if (!userRecord) {
+    if (req.method === 'OPTIONS') { res.writeHead(200); res.end(); return; }
+
+    // ── Token handshake endpoint ──
+    if (req.method === 'GET' && pathname === '/api/db-token') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, exists: false, data: null }));
+      res.end(JSON.stringify({ token: DB_TOKEN }));
       return;
     }
 
-    try {
-      if (userRecord.hash) {
-        if (!password) {
-          res.writeHead(401, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: false, error: 'Password required' }));
-          return;
-        }
-        const { hash } = hashPassword(password, userRecord.salt);
-        if (hash !== userRecord.hash) {
-          res.writeHead(401, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: false, error: 'Incorrect password for this username' }));
-          return;
-        }
-      }
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, exists: true, data: userRecord.state }));
-    } catch (err) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, error: err.message }));
+    // ── Token guard for all /api/user-data calls ──
+    function isValidToken(request) {
+      return request.headers['x-db-token'] === DB_TOKEN;
     }
-    return;
-  }
 
-  if (req.method === 'POST' && pathname === '/api/user-data') {
-    if (!isValidToken(req)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
-      return;
-    }
-    let body = '';
-    let tooLarge = false;
-    req.on('data', chunk => {
-      if (tooLarge) return;
-      body += chunk;
-      if (body.length > 65536) {
-        tooLarge = true;
-        res.writeHead(413, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Payload too large (64 KB limit)' }));
-        req.destroy();
+    // ── Database Routes ──
+    if (req.method === 'GET' && pathname === '/api/user-data') {
+      if (!isValidToken(req)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
       }
-    });
-    req.on('end', () => {
-      if (tooLarge) return;
-      try {
-        const { username, password, newPassword, state } = JSON.parse(body);
-        if (!username) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Username is required' }));
-          return;
-        }
-        if (!state || !state.user) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Valid state object is required' }));
-          return;
-        }
+      const username = parsedUrl.searchParams.get('username');
+      if (!username) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Username is required' }));
+        return;
+      }
+      const password = req.headers['x-user-password'];
 
-        const userId = state.user.userId;
-        let resultState;
-        let exists = false;
-
-        if (userId) {
-          resultState = db.updateUser(userId, username, password, newPassword, state);
-          exists = true;
-        } else {
-          const onboardResult = db.onboardUser(username, password, state);
-          resultState = onboardResult.state;
-          exists = onboardResult.exists;
-        }
-
+      const userRecord = db.findByUsername(username);
+      if (!userRecord) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, exists, state: resultState }));
-      } catch (err) {
-        const status = err.message.toLowerCase().includes('password') || err.message.toLowerCase().includes('taken') ? 401 : 500;
-        res.writeHead(status, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message }));
+        res.end(JSON.stringify({ success: true, exists: false, data: null }));
+        return;
       }
-    });
-    return;
-  }
 
-  if (req.method === 'POST' && pathname === '/api/chat') {
-    let body = '';
-    let tooLarge = false;
-    req.on('data', chunk => {
-      if (tooLarge) return;
-      body += chunk;
-      if (body.length > 65536) {
-        tooLarge = true;
-        res.writeHead(413, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Payload too large (64 KB limit)' }));
-        req.destroy();
-      }
-    });
-    req.on('end', async () => {
-      if (tooLarge) return;
       try {
-        const { message, history, context, max_tokens = 400 } = JSON.parse(body);
-        if (!message) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Message is required' }));
-          return;
+        if (userRecord.hash) {
+          if (!password) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Password required' }));
+            return;
+          }
+          const { hash } = hashPassword(password, userRecord.salt);
+          if (hash !== userRecord.hash) {
+            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Incorrect password for this username' }));
+            return;
+          }
         }
-
-        const prompt = compileServerPrompt(message, history, context);
-        const apiKey = process.env.IBM_API_KEY;
-        const projectId = process.env.IBM_PROJECT_ID;
-        const region = process.env.IBM_REGION || 'us-south';
-
-        if (!apiKey || !projectId) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Set IBM_API_KEY and IBM_PROJECT_ID in .env file' }));
-          return;
-        }
-
-        const token = await getIAMToken(apiKey);
-        const wxRes = await httpsRequest(
-          `https://${region}.ml.cloud.ibm.com/ml/v1/text/generation?version=2025-02-06`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            }
-          },
-          JSON.stringify({
-            model_id: process.env.IBM_MODEL_ID || 'ibm/granite-3-8b-instruct',
-            input: prompt,
-            project_id: projectId,
-            parameters: {
-              decoding_method: 'greedy',
-              max_new_tokens: max_tokens,
-              temperature: 0.7,
-              top_p: 0.9,
-              repetition_penalty: 1.1,
-              stop_sequences: ['<|eot_id|>', '<|start_header_id|>', '\nUser:', '\nHuman:', '\n\n\n']
-            }
-          })
-        );
-
-        if (!wxRes.ok) {
-          console.error('watsonx error:', wxRes.status, wxRes.body);
-          res.writeHead(wxRes.status, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: `watsonx.ai error: ${wxRes.status}` }));
-          return;
-        }
-
-        const data = JSON.parse(wxRes.body);
-        const generatedText = data.results?.[0]?.generated_text || '';
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ generated_text: generatedText.trim() }));
-
+        res.end(JSON.stringify({ success: true, exists: true, data: userRecord.state }));
       } catch (err) {
-        console.error('Proxy error:', err);
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message }));
+        res.end(JSON.stringify({ success: false, error: err.message }));
       }
-    });
-  } else {
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/user-data') {
+      if (!isValidToken(req)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
+        return;
+      }
+      let body = '';
+      let tooLarge = false;
+      req.on('data', chunk => {
+        if (tooLarge) return;
+        body += chunk;
+        if (body.length > 65536) {
+          tooLarge = true;
+          res.writeHead(413, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Payload too large (64 KB limit)' }));
+          req.destroy();
+        }
+      });
+      req.on('end', () => {
+        if (tooLarge) return;
+        try {
+          const { username, password, newPassword, state } = JSON.parse(body);
+          if (!username) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Username is required' }));
+            return;
+          }
+          if (!state || !state.user) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Valid state object is required' }));
+            return;
+          }
+
+          const userId = state.user.userId;
+          let resultState;
+          let exists = false;
+
+          if (userId) {
+            resultState = db.updateUser(userId, username, password, newPassword, state);
+            exists = true;
+          } else {
+            const onboardResult = db.onboardUser(username, password, state);
+            resultState = onboardResult.state;
+            exists = onboardResult.exists;
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, exists, state: resultState }));
+        } catch (err) {
+          const status = err.message.toLowerCase().includes('password') || err.message.toLowerCase().includes('taken') ? 401 : 500;
+          res.writeHead(status, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err.message }));
+        }
+      });
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/chat') {
+      let body = '';
+      let tooLarge = false;
+      req.on('data', chunk => {
+        if (tooLarge) return;
+        body += chunk;
+        if (body.length > 65536) {
+          tooLarge = true;
+          res.writeHead(413, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Payload too large (64 KB limit)' }));
+          req.destroy();
+        }
+      });
+      req.on('end', async () => {
+        if (tooLarge) return;
+        try {
+          const { message, history, context, max_tokens = 400 } = JSON.parse(body);
+          if (!message) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Message is required' }));
+            return;
+          }
+
+          const prompt = compileServerPrompt(message, history, context);
+          const apiKey = process.env.IBM_API_KEY;
+          const projectId = process.env.IBM_PROJECT_ID;
+          const region = process.env.IBM_REGION || 'us-south';
+
+          if (!apiKey || !projectId) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Set IBM_API_KEY and IBM_PROJECT_ID in .env file' }));
+            return;
+          }
+
+          const token = await getIAMToken(apiKey);
+          const wxRes = await httpsRequest(
+            `https://${region}.ml.cloud.ibm.com/ml/v1/text/generation?version=2025-02-06`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              }
+            },
+            JSON.stringify({
+              model_id: process.env.IBM_MODEL_ID || 'ibm/granite-3-8b-instruct',
+              input: prompt,
+              project_id: projectId,
+              parameters: {
+                decoding_method: 'greedy',
+                max_new_tokens: max_tokens,
+                temperature: 0.7,
+                top_p: 0.9,
+                repetition_penalty: 1.1,
+                stop_sequences: ['<|eot_id|>', '<|start_header_id|>', '\nUser:', '\nHuman:', '\n\n\n']
+              }
+            })
+          );
+
+          if (!wxRes.ok) {
+            console.error('watsonx error:', wxRes.status, wxRes.body);
+            res.writeHead(wxRes.status, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: `watsonx.ai error: ${wxRes.status}` }));
+            return;
+          }
+
+          const data = JSON.parse(wxRes.body);
+          const generatedText = data.results?.[0]?.generated_text || '';
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ generated_text: generatedText.trim() }));
+
+        } catch (err) {
+          console.error('Proxy error:', err);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err.message }));
+        }
+      });
+      return;
+    }
+
     res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Not found. Use POST /api/chat' }));
+    res.end(JSON.stringify({ error: 'Endpoint not found' }));
+    return;
   }
-});
 
-// Static File Server (serves the app)
-const MIME_TYPES = {
-  '.html': 'text/html',
-  '.css': 'text/css',
-  '.js': 'application/javascript',
-  '.json': 'application/json',
-  '.png': 'image/png',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon'
-};
-
-const staticServer = http.createServer((req, res) => {
-  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  // ──── 2. Static Assets File Serving ────
   const requestPath = parsedUrl.pathname === '/' ? 'index.html' : decodeURIComponent(parsedUrl.pathname);
 
-  // ── Security: block access to sensitive paths ──
+  // Security: block access to sensitive paths
   const normalized = requestPath.replace(/\\/g, '/').toLowerCase();
   const BLOCKED = ['.data', 'db.json', '.env', '.gitignore', 'server.js'];
   const isBlocked = BLOCKED.some(b => normalized.includes(b));
@@ -713,7 +703,7 @@ const staticServer = http.createServer((req, res) => {
 
   let filePath = path.join(__dirname, requestPath);
 
-  // ── Security: prevent path traversal outside __dirname ──
+  // Security: prevent path traversal outside __dirname
   if (!filePath.startsWith(__dirname)) {
     res.writeHead(403, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Forbidden' }));
@@ -742,11 +732,18 @@ const staticServer = http.createServer((req, res) => {
   });
 });
 
-apiServer.listen(PORT, () => {
-  console.log(`\n🔌 API Proxy running at http://localhost:${PORT}/api/chat`);
-});
+// Static File Server MIME Types
+const MIME_TYPES = {
+  '.html': 'text/html',
+  '.css': 'text/css',
+  '.js': 'application/javascript',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon'
+};
 
-staticServer.listen(STATIC_PORT, () => {
-  console.log(`🏋️ FitBuddy running at http://localhost:${STATIC_PORT}`);
+server.listen(PORT, () => {
+  console.log(`🏋️ FitBuddy running at http://localhost:${PORT}`);
   console.log(`\n📝 Set IBM credentials in .env file:\n   IBM_API_KEY=your_key\n   IBM_PROJECT_ID=your_project_id\n   IBM_REGION=us-south\n`);
 });
