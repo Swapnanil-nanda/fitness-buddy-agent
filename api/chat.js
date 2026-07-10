@@ -1,12 +1,12 @@
-// Vercel Serverless Function — IBM watsonx.ai Proxy
-// Handles IAM token exchange and model inference
+// Vercel Serverless Function — POST /api/chat
+// Proxies chat requests to IBM watsonx.ai via server-side prompt compilation.
 
-let cachedToken = null;
-let tokenExpiry = 0;
+const { compileServerPrompt, getIAMToken } = require('./_lib');
 
-export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
+module.exports = async function handler(req, res) {
+  // CORS
+  const origin = req.headers.origin;
+  res.setHeader('Access-Control-Allow-Origin', origin || '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -19,27 +19,32 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { prompt, max_tokens = 400 } = req.body;
+    const { message, history, context, max_tokens = 400 } = req.body;
 
-    if (!prompt) {
-      return res.status(400).json({ error: 'Missing prompt' });
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
     }
 
     const apiKey = process.env.IBM_API_KEY;
     const projectId = process.env.IBM_PROJECT_ID;
     const region = process.env.IBM_REGION || 'us-south';
+    const modelId = process.env.IBM_MODEL_ID || 'ibm/granite-3-8b-instruct';
 
     if (!apiKey || !projectId) {
-      return res.status(500).json({
-        error: 'IBM Cloud credentials not configured. Set IBM_API_KEY and IBM_PROJECT_ID environment variables.'
+      console.log('💡 Missing watsonx credentials — sending fallback response.');
+      return res.status(200).json({
+        generated_text: '[IBM watsonx.ai Fallback] Please configure IBM_API_KEY and IBM_PROJECT_ID in your Vercel environment variables to enable live AI coaching replies!'
       });
     }
 
-    // Step 1: Get/refresh IAM token
+    // Compile the full Llama-3 prompt with system context
+    const prompt = compileServerPrompt(message, history, context);
+
+    // Get IAM bearer token (cached for 50 min)
     const token = await getIAMToken(apiKey);
 
-    // Step 2: Call watsonx.ai
-    const response = await fetch(
+    // Call watsonx.ai text generation
+    const wxRes = await fetch(
       `https://${region}.ml.cloud.ibm.com/ml/v1/text/generation?version=2025-02-06`,
       {
         method: 'POST',
@@ -49,7 +54,7 @@ export default async function handler(req, res) {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          model_id: 'meta-llama/llama-3-3-70b-instruct',
+          model_id: modelId,
           input: prompt,
           project_id: projectId,
           parameters: {
@@ -64,16 +69,16 @@ export default async function handler(req, res) {
       }
     );
 
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error('watsonx.ai error:', response.status, errorBody);
-      return res.status(response.status).json({
-        error: `watsonx.ai API error: ${response.status}`,
+    if (!wxRes.ok) {
+      const errorBody = await wxRes.text();
+      console.error('watsonx.ai error:', wxRes.status, errorBody);
+      return res.status(wxRes.status).json({
+        error: `watsonx.ai API error: ${wxRes.status}`,
         details: errorBody
       });
     }
 
-    const data = await response.json();
+    const data = await wxRes.json();
     const generatedText = data.results?.[0]?.generated_text || '';
 
     return res.status(200).json({
@@ -85,29 +90,4 @@ export default async function handler(req, res) {
     console.error('Proxy error:', error);
     return res.status(500).json({ error: error.message || 'Internal server error' });
   }
-}
-
-async function getIAMToken(apiKey) {
-  const now = Date.now();
-
-  // Return cached token if still valid (50 min buffer, tokens last 60 min)
-  if (cachedToken && now < tokenExpiry) {
-    return cachedToken;
-  }
-
-  const response = await fetch('https://iam.cloud.ibm.com/identity/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey=${apiKey}`
-  });
-
-  if (!response.ok) {
-    throw new Error(`IAM token exchange failed: ${response.status}`);
-  }
-
-  const data = await response.json();
-  cachedToken = data.access_token;
-  tokenExpiry = now + 50 * 60 * 1000; // Cache for 50 minutes
-
-  return cachedToken;
-}
+};

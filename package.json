@@ -4,8 +4,8 @@
   "description": "FitBuddy — Humanized AI Fitness Coach powered by IBM Granite",
   "private": true,
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "vercel dev",
+    "dev": "vercel dev"
   },
   "keywords": [
     "fitness",
@@ -17,6 +17,7 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "ioredis": "^5.4.1",
     "nodemailer": "^9.0.3"
   }
 }

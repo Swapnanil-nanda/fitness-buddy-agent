@@ -1,6 +1,8 @@
 {
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/api/db-token", "destination": "/api/db-token" },
+    { "source": "/api/user-data", "destination": "/api/user-data" },
+    { "source": "/api/chat", "destination": "/api/chat" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
