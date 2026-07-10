@@ -1587,13 +1587,32 @@ html, body {
 /* ──── Responsive ──── */
 @media (max-width: 1100px) {
   #app-container {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "xp"
-      "center";
+    display: block !important;
+    height: calc(100vh - 80px) !important;
+    padding-bottom: 60px !important;
+    box-sizing: border-box;
+    overflow: hidden;
   }
-  #left-panel, #right-panel { display: none; }
-  /* Mobile: show a bottom nav to toggle panels */
+  #left-panel, #center-panel, #right-panel {
+    display: none !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow-y: auto !important;
+  }
+  #left-panel.active {
+    display: flex !important;
+    flex-direction: column;
+  }
+  #center-panel.active {
+    display: flex !important;
+    flex-direction: column;
+  }
+  #right-panel.active {
+    display: block !important;
+  }
+  .toast {
+    bottom: 80px !important;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1725,4 +1744,87 @@ html, body {
 .landing-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 40px rgba(255, 255, 255, 0.1);
+}
+
+/* ------- Mobile Bottom Navigation Bar ------- */
+#mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: rgba(15, 15, 15, 0.95);
+  border-top: 1px solid var(--glass-border-light);
+  backdrop-filter: var(--blur-heavy);
+  -webkit-backdrop-filter: var(--blur-heavy);
+  z-index: 850;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 10px;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.mobile-nav-btn {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  width: 75px;
+  height: 100%;
+  transition: color 0.2s, transform 0.2s;
+  padding: 0;
+}
+
+.mobile-nav-btn .nav-icon {
+  font-size: 18px;
+  opacity: 0.6;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.mobile-nav-btn .nav-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.mobile-nav-btn:active {
+  transform: scale(0.95);
+}
+
+.mobile-nav-btn.active {
+  color: var(--accent);
+}
+
+.mobile-nav-btn.active .nav-icon {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* ------- Mobile Landing Centering Adjustment ------- */
+@media (max-width: 768px) {
+  .landing-title {
+    font-size: 38px !important;
+    line-height: 1.2 !important;
+    letter-spacing: -1px !important;
+    margin-bottom: 16px !important;
+  }
+  .landing-subtitle {
+    font-size: 13px !important;
+    margin-bottom: 30px !important;
+    line-height: 1.4 !important;
+  }
+  .landing-btn {
+    padding: 12px 28px !important;
+    font-size: 14px !important;
+  }
+  .landing-content {
+    padding: 0 20px !important;
+  }
 }

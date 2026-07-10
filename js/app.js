@@ -392,6 +392,7 @@ async function boot() {
   // Settings modal
   initSettings();
   initLogout();
+  initMobileNav();
 
   console.log('🏋️ FitBuddy initialized');
 }
@@ -515,6 +516,46 @@ function initSettings() {
     modal.classList.remove('visible');
     showToast('Profile & Biometrics saved!', '👤');
   });
+}
+
+// ──── Mobile Navigation Controller ────
+function initMobileNav() {
+  const navButtons = document.querySelectorAll('.mobile-nav-btn');
+  const panels = {
+    left: document.getElementById('left-panel'),
+    center: document.getElementById('center-panel'),
+    right: document.getElementById('right-panel')
+  };
+
+  navButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.target;
+      
+      // Toggle active button
+      navButtons.forEach(b => b.classList.toggle('active', b === btn));
+      
+      // Toggle active panels
+      Object.entries(panels).forEach(([key, panel]) => {
+        if (panel) {
+          panel.classList.toggle('active', key === target);
+        }
+      });
+    });
+  });
+
+  // Set default active panel for mobile on load
+  if (window.innerWidth <= 1100) {
+    const activeBtn = document.querySelector('.mobile-nav-btn.active') || navButtons[0];
+    if (activeBtn) {
+      const target = activeBtn.dataset.target;
+      navButtons.forEach(b => b.classList.toggle('active', b === activeBtn));
+      Object.entries(panels).forEach(([key, panel]) => {
+        if (panel) {
+          panel.classList.toggle('active', key === target);
+        }
+      });
+    }
+  }
 }
 
 // ──── Boot ────
