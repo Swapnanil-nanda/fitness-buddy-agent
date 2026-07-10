@@ -129,7 +129,7 @@ export async function loadUserDataFromDB(username, password) {
     const endpoint = `${getApiBaseUrl()}/api/user-data?username=${encodeURIComponent(username)}`;
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5 second timeout fail-safe
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout fail-safe
     
     const headers = {
       ...dbHeaders(),
