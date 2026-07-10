@@ -1,17 +1,14 @@
-/* ============================================
-   FitBuddy — Mini-Games: Breather, Reflex, Hamster, Catcher
-   With Web Audio API Retro Sound Effects
-   ============================================ */
+
 
 import { State, EventBus, showToast } from './app.js';
 
-// ──── DOM References (resolved lazily) ────
+
 const $ = (id) => document.getElementById(id);
 
-// ──── Active Game State ────
-let activeGame   = null;   // 'breather' | 'reflex' | 'hamster' | 'catcher' | null
-let gameTimers   = [];     // All setTimeout / setInterval IDs for cleanup
-let gameCleanup  = null;   // Custom cleanup callback for current game
+
+let activeGame   = null;   
+let gameTimers   = [];     
+let gameCleanup  = null;   
 
 /** Register a timer so it can be cleared on game exit */
 function addTimer(id) { gameTimers.push(id); return id; }
@@ -22,7 +19,7 @@ function clearAllTimers() {
   gameTimers = [];
 }
 
-// ──── Web Audio API Synthesizer (Zero-dependency Sound Effects) ────
+
 let audioCtx = null;
 
 function getAudioContext() {
@@ -35,13 +32,7 @@ function getAudioContext() {
   return audioCtx;
 }
 
-/**
- * Play a synthesizer note.
- * @param {number} freq - frequency in Hz
- * @param {string} type - oscillator type ('sine', 'square', 'sawtooth', 'triangle')
- * @param {number} duration - duration in seconds
- * @param {number} volume - volume multiplier
- */
+
 function playTone(freq, type, duration, volume = 0.1) {
   try {
     const ctx = getAudioContext();
@@ -52,7 +43,7 @@ function playTone(freq, type, duration, volume = 0.1) {
     osc.frequency.setValueAtTime(freq, ctx.currentTime);
     
     gainNode.gain.setValueAtTime(volume, ctx.currentTime);
-    // Linear decay to prevent clicking sounds
+    
     gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
     
     osc.connect(gainNode);
@@ -65,39 +56,39 @@ function playTone(freq, type, duration, volume = 0.1) {
   }
 }
 
-// Sound effects:
+
 const sound = {
   click: () => playTone(600, 'sine', 0.08, 0.08),
   hit: () => {
-    // Pleasant high-pitched chime
+    
     playTone(880, 'triangle', 0.12, 0.12);
   },
   miss: () => {
-    // Low-pitched buzz
+    
     playTone(150, 'sawtooth', 0.2, 0.08);
   },
   levelUp: () => {
-    // Happy upward arpeggio
-    setTimeout(() => playTone(523.25, 'sine', 0.15, 0.12), 0); // C5
-    setTimeout(() => playTone(659.25, 'sine', 0.15, 0.12), 80); // E5
-    setTimeout(() => playTone(783.99, 'sine', 0.15, 0.12), 160); // G5
-    setTimeout(() => playTone(1046.50, 'sine', 0.25, 0.15), 240); // C6
+    
+    setTimeout(() => playTone(523.25, 'sine', 0.15, 0.12), 0); 
+    setTimeout(() => playTone(659.25, 'sine', 0.15, 0.12), 80); 
+    setTimeout(() => playTone(783.99, 'sine', 0.15, 0.12), 160); 
+    setTimeout(() => playTone(1046.50, 'sine', 0.25, 0.15), 240); 
   },
   start: () => {
-    // Game start sound
+    
     playTone(440, 'triangle', 0.08, 0.08);
     setTimeout(() => playTone(554.37, 'triangle', 0.08, 0.08), 80);
     setTimeout(() => playTone(659.25, 'triangle', 0.2, 0.12), 160);
   },
   gameOver: () => {
-    // Downward sad sound
+    
     playTone(392, 'sawtooth', 0.15, 0.08);
     setTimeout(() => playTone(349.23, 'sawtooth', 0.15, 0.08), 120);
     setTimeout(() => playTone(311.13, 'sawtooth', 0.35, 0.12), 240);
   }
 };
 
-// ──── Overlay Management ────
+
 
 function openOverlay() {
   const overlay = $('game-overlay');
@@ -130,14 +121,14 @@ function stopGame() {
   closeOverlay();
 }
 
-// ──── Post-Game Flow ────
+
 
 /** Called when any game finishes naturally */
 function onGameComplete(gameName, score) {
   clearAllTimers();
   if (gameCleanup) { gameCleanup(); gameCleanup = null; }
 
-  // Award completion XP
+  
   EventBus.emit('xp:gained', { amount: 25, reason: `Completed ${gameName}` });
   EventBus.emit('game:completed', { game: gameName, score });
 
@@ -145,7 +136,7 @@ function onGameComplete(gameName, score) {
   const title    = $('postgame-title');
   const subtitle = $('postgame-subtitle');
 
-  // Show refined postgame feedback for negative moods
+  
   if (State.isStressedOrExhausted) {
     const moodLabel = State.today.mood === 'sad' ? 'feeling down' :
                       State.today.mood === 'exhausted' ? 'feeling tired' : 'feeling stressed';
@@ -153,7 +144,7 @@ function onGameComplete(gameName, score) {
     if (subtitle) subtitle.textContent = `You were ${moodLabel} earlier. Did this game help you feel better?`;
     if (modal) modal.classList.add('visible');
   } else {
-    // For happy/neutral moods, just show a quick celebration
+    
     closeOverlay();
     activeGame = null;
     showToast(`Great ${gameName}! You scored ${score}! 🎮`, '🎉', 3000);
@@ -168,7 +159,7 @@ function initPostgameModal() {
 
   if (yesBtn) {
     yesBtn.addEventListener('click', () => {
-      // Show a refined encouraging response
+      
       if (subtitle) {
         subtitle.innerHTML = `<div style="color: var(--green); font-size: 18px; font-weight: 700; margin-bottom: 8px;">That's wonderful to hear! 🌟</div>
           <div style="font-size: 13px; color: var(--text-2); line-height: 1.5;">
@@ -177,17 +168,17 @@ function initPostgameModal() {
           </div>`;
       }
 
-      // Update mood to happy — this unlocks the exercise tab via mood:changed listener
+      
       State.set('today.mood', 'happy');
       EventBus.emit('mood:changed', { mood: 'happy' });
 
-      // Bonus XP for positive feedback
+      
       EventBus.emit('xp:gained', { amount: 10, reason: 'Feeling great after game' });
 
-      // Signal chat module to send a personalised "you can now exercise" message
+      
       EventBus.emit('mood:unlocked', { previousMood: State.today.mood });
 
-      // Auto-close after a moment so user can read the message
+      
       setTimeout(() => {
         if (modal) modal.classList.remove('visible');
         closeOverlay();
@@ -198,7 +189,7 @@ function initPostgameModal() {
 
   if (noBtn) {
     noBtn.addEventListener('click', () => {
-      // Show a refined supportive response
+      
       if (subtitle) {
         subtitle.innerHTML = `<div style="color: var(--blue); font-size: 18px; font-weight: 700; margin-bottom: 8px;">That's okay, take your time 💙</div>
           <div style="font-size: 13px; color: var(--text-2); line-height: 1.5;">
@@ -211,10 +202,10 @@ function initPostgameModal() {
           </div>`;
       }
 
-      // Signal chat module to send a rest/game suggestion
+      
       EventBus.emit('mood:still-low', {});
 
-      // Auto-close after reading time
+      
       setTimeout(() => {
         if (modal) modal.classList.remove('visible');
         closeOverlay();
@@ -224,9 +215,9 @@ function initPostgameModal() {
   }
 }
 
-// ═══════════════════════════════════════════
-//  GAME 1: Zen Breather
-// ═══════════════════════════════════════════
+
+
+
 
 function startBreather() {
   activeGame = 'breather';
@@ -241,7 +232,7 @@ function startBreather() {
   if (timerLoc) timerLoc.textContent = 'Follow the circle. Breathe naturally.';
   if (scoreEl)    scoreEl.textContent    = 'Breathe deeply...';
 
-  // Create the breathing circle
+  
   canvas.innerHTML = `
     <div class="breather-circle">
       <span class="breather-text">Get Ready</span>
@@ -253,7 +244,7 @@ function startBreather() {
 
   const phases   = ['inhale', 'hold', 'exhale'];
   const labels   = ['Inhale...', 'Hold...', 'Exhale...'];
-  const PHASE_MS = 4000; // 4 seconds per phase
+  const PHASE_MS = 4000; 
   const TOTAL_CYCLES = 3;
 
   let currentCycle = 0;
@@ -261,9 +252,9 @@ function startBreather() {
 
   function setPhase(phaseIndex) {
     sound.click();
-    // Remove all phase classes
+    
     circle.classList.remove('inhale', 'hold', 'exhale');
-    // Add current phase class
+    
     circle.classList.add(phases[phaseIndex]);
     text.textContent = labels[phaseIndex];
   }
@@ -292,9 +283,9 @@ function startBreather() {
   addTimer(setInterval(advancePhase, PHASE_MS));
 }
 
-// ═══════════════════════════════════════════
-//  GAME 2: Reflex Dash
-// ═══════════════════════════════════════════
+
+
+
 
 function startReflex() {
   activeGame = 'reflex';
@@ -308,7 +299,7 @@ function startReflex() {
 
   if (instructEl) instructEl.textContent = 'Tap the targets as fast as you can!';
 
-  // Create the play area
+  
   canvas.innerHTML = '<div class="reflex-area"></div>';
   const area = canvas.querySelector('.reflex-area');
 
@@ -319,7 +310,7 @@ function startReflex() {
   if (scoreEl) scoreEl.textContent = 'Score: 0';
   if (timerEl) timerEl.textContent = '30s';
 
-  // ── Miss sound if clicking background ──
+  
   area.addEventListener('pointerdown', () => {
     if (activeGame === 'reflex') sound.miss();
   });
@@ -388,9 +379,9 @@ function startReflex() {
   };
 }
 
-// ═══════════════════════════════════════════
-//  GAME 3: Hamster Smash
-// ═══════════════════════════════════════════
+
+
+
 
 function startHamster() {
   activeGame = 'hamster';
@@ -499,9 +490,9 @@ function startHamster() {
   };
 }
 
-// ═══════════════════════════════════════════
-//  GAME 4: Food Catcher
-// ═══════════════════════════════════════════
+
+
+
 
 function startCatcher() {
   activeGame = 'catcher';
@@ -517,7 +508,7 @@ function startCatcher() {
   if (scoreEl) scoreEl.textContent = 'Score: 0';
   if (timer) timer.textContent = '30s';
 
-  // Setup game area inside canvas
+  
   const area = document.createElement('div');
   area.className = 'catcher-area';
   area.style.position = 'relative';
@@ -526,10 +517,10 @@ function startCatcher() {
   area.style.overflow = 'hidden';
   area.style.background = 'rgba(0, 0, 0, 0.2)';
   area.style.borderRadius = '12px';
-  area.style.touchAction = 'none'; // prevents scrolling page during touch drag
+  area.style.touchAction = 'none'; 
   canvas.appendChild(area);
 
-  // Basket element at bottom
+  
   const basket = document.createElement('div');
   basket.className = 'basket';
   basket.textContent = '🧺';
@@ -547,10 +538,10 @@ function startCatcher() {
   let score = 0;
   let timeLeft = 30;
 
-  // Move basket with mouse or touch
+  
   function moveBasket(clientX) {
     const rect = area.getBoundingClientRect();
-    let x = clientX - rect.left - 30; // center the 60px wide basket
+    let x = clientX - rect.left - 30; 
     if (x < 0) x = 0;
     if (x > rect.width - 60) x = rect.width - 60;
     basket.style.left = `${x}px`;
@@ -562,13 +553,13 @@ function startCatcher() {
   const healthyItems = ['🍏', '🍌', '🥗', '🥛', '🥑', '🥦', '🍓'];
   const cheatItems   = ['🍕', '🍔', '🍟', '🍩', '🥤', '🍰', '🌭'];
   
-  let activeFalling = []; // list of active falling elements
+  let activeFalling = []; 
 
-  // Spawn an item
+  
   function spawnItem() {
     if (activeGame !== 'catcher' || timeLeft <= 0) return;
 
-    const isHealthy = Math.random() < 0.6; // 60% healthy
+    const isHealthy = Math.random() < 0.6; 
     const text = isHealthy 
       ? healthyItems[Math.floor(Math.random() * healthyItems.length)]
       : cheatItems[Math.floor(Math.random() * cheatItems.length)];
@@ -597,12 +588,12 @@ function startCatcher() {
 
     activeFalling.push(fallingObj);
 
-    // Schedule next spawn
+    
     const spawnDelay = 700 + Math.random() * 600;
     addTimer(setTimeout(spawnItem, spawnDelay));
   }
 
-  // Animation Loop (requestAnimationFrame)
+  
   let animationId = null;
   function updatePhysics() {
     if (activeGame !== 'catcher' || timeLeft <= 0) return;
@@ -614,7 +605,7 @@ function startCatcher() {
       item.y += item.speed;
       item.el.style.top = `${item.y}px`;
 
-      // Check collision
+      
       const itemRect = item.el.getBoundingClientRect();
       const collided = (
         itemRect.bottom >= basketRect.top &&
@@ -641,7 +632,7 @@ function startCatcher() {
         return false;
       }
 
-      // Check boundary fall
+      
       if (item.y > areaRect.height) {
         if (item.isHealthy) {
           score = Math.max(0, score - 2);
@@ -680,9 +671,9 @@ function startCatcher() {
   };
 }
 
-// ═══════════════════════════════════════════
-//  Game Card Click Router
-// ═══════════════════════════════════════════
+
+
+
 
 const GAME_STARTERS = {
   breather: startBreather,
@@ -696,7 +687,7 @@ function initGameCards() {
     card.addEventListener('click', () => {
       const game = card.dataset.game;
       if (!game || !GAME_STARTERS[game]) return;
-      if (activeGame) stopGame(); // clean up any running game
+      if (activeGame) stopGame(); 
       GAME_STARTERS[game]();
     });
   });
@@ -709,7 +700,7 @@ function initCloseButton() {
   }
 }
 
-// ──── Module Init ────
+
 
 export function initGames() {
   initGameCards();

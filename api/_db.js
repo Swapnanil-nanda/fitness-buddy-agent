@@ -2,7 +2,7 @@ const Redis = require('ioredis');
 const crypto = require('crypto');
 const { hashPassword } = require('./_lib');
 
-// Lazy singleton Redis client
+
 let _client = null;
 
 function getClient() {
@@ -59,7 +59,7 @@ async function onboardUser(username, password, state) {
     return { exists: true, state: existing.state };
   }
 
-  // New user
+  
   const userId = 'usr_' + crypto.randomBytes(8).toString('hex');
   const { hash, salt } = hashPassword(password);
 
@@ -80,7 +80,7 @@ async function updateUser(userId, username, password, newPassword, state) {
     throw new Error('User not found');
   }
 
-  // Verify current password if the record has a hash
+  
   if (existing.hash) {
     const attempt = hashPassword(password, existing.salt);
     if (attempt.hash !== existing.hash) {
@@ -88,7 +88,7 @@ async function updateUser(userId, username, password, newPassword, state) {
     }
   }
 
-  // Check if username changed and not taken by another user
+  
   if (
     username &&
     existing.state.user.username.toLowerCase() !== username.toLowerCase()
@@ -100,7 +100,7 @@ async function updateUser(userId, username, password, newPassword, state) {
     state.user.username = username;
   }
 
-  // Re-hash if new password provided
+  
   let hash = existing.hash;
   let salt = existing.salt;
   if (newPassword) {

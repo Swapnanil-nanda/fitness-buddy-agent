@@ -1,8 +1,6 @@
-/* ============================================
-   FitBuddy — Core Application State & Router
-   ============================================ */
 
-// ──── Event Bus ────
+
+
 const _listeners = {};
 export const EventBus = {
   on(event, fn) {
@@ -22,8 +20,8 @@ export function getApiBaseUrl() {
   return '';
 }
 
-// ── Session DB token — fetched once from /api/db-token at boot (local only).
-// Attached as X-DB-Token header on every /api/user-data request.
+
+
 let _dbToken = null;
 
 async function fetchDbToken() {
@@ -34,7 +32,7 @@ async function fetchDbToken() {
       _dbToken = data.token || null;
     }
   } catch (e) {
-    // Running on Vercel or token endpoint unavailable — no token needed
+    
     _dbToken = null;
   }
 }
@@ -45,7 +43,7 @@ export function dbHeaders() {
   return h;
 }
 
-// ──── Default State ────
+
 function createDefaultState() {
   return {
     user: {
@@ -55,22 +53,22 @@ function createDefaultState() {
       age: 0,
       gender: 'male',
       bmi: 0,
-      goal: 'maintain', // 'loss' | 'maintain' | 'gain'
+      goal: 'maintain', 
       tdee: 0,
       macros: { protein: 0, carbs: 0, fat: 0 },
       bodyFat: 0,
       neck: 0,
       waist: 0,
       hip: 0,
-      activity: 'lightly', // 'sedentary' | 'lightly' | 'moderately' | 'very' | 'extra'
-      cuisine: 'any',      // preferred cuisine
-      diet: 'no-restriction' // diet type / restriction
+      activity: 'lightly', 
+      cuisine: 'any',      
+      diet: 'no-restriction' 
     },
     onboarded: false,
     today: freshDay(),
     xp: { total: 0, level: 1, title: 'Beginner' },
     settings: {
-      mode: 'proxy', // 'proxy' | 'local' | 'direct'
+      mode: 'proxy', 
       waterTarget: 8,
       customCheatFoods: [],
       customHealthyFoods: []
@@ -125,7 +123,7 @@ export async function loadUserDataFromDB(username, password) {
     const endpoint = `${getApiBaseUrl()}/api/user-data?username=${encodeURIComponent(username)}`;
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout fail-safe
+    const timeoutId = setTimeout(() => controller.abort(), 8000); 
     
     const headers = {
       ...dbHeaders(),
@@ -162,7 +160,7 @@ export async function loadUserDataFromDB(username, password) {
   }
 }
 
-// ──── State Singleton ────
+
 let _state = createDefaultState();
 
 export const State = {
@@ -210,14 +208,14 @@ export const State = {
       if (raw) {
         const parsed = JSON.parse(raw);
         _state = deepMerge(createDefaultState(), parsed);
-        // Check for day rollover
+        
         const todayStr = new Date().toISOString().split('T')[0];
         if (_state.today.date !== todayStr) {
           _state.today = freshDay();
           _state.today.date = todayStr;
           this.save();
         } else {
-          // Remove old default challenges (c1, c2, c3) so only AI/custom tasks remain
+          
           if (_state.today.challenges) {
             _state.today.challenges = _state.today.challenges.filter(c => !['c1', 'c2', 'c3'].includes(c.id));
           }
@@ -236,7 +234,7 @@ export const State = {
     EventBus.emit('state:changed', { path: '', value: _state });
   },
 
-  // ── Computed Properties ──
+  
   get caloriesConsumed() {
     return _state.today.meals.reduce((s, m) => s + (m.calories || 0), 0);
   },
@@ -267,7 +265,7 @@ export function reloadState(newState, password) {
   EventBus.emit('state:changed', { path: '', value: _state });
 }
 
-// ──── Deep Merge Utility ────
+
 function deepMerge(target, source) {
   const out = { ...target };
   for (const key of Object.keys(source)) {
@@ -281,7 +279,7 @@ function deepMerge(target, source) {
   return out;
 }
 
-// ──── Tab Router ────
+
 function initTabRouter() {
   const tabs = document.querySelectorAll('.tab-btn');
   const panes = document.querySelectorAll('.tab-pane');
@@ -296,7 +294,7 @@ function initTabRouter() {
   });
 }
 
-// ──── Toast Notifications ────
+
 let toastTimer = null;
 export function showToast(text, icon = '✨', duration = 2500) {
   const toast = document.getElementById('toast');
@@ -330,18 +328,18 @@ function initLabEntry() {
   });
 }
 
-// ──── Module Initialization ────
+
 async function boot() {
-  // Keep the front door responsive even if a feature module fails later.
+  
   initLabEntry();
 
-  // Fetch session DB token from server (local dev only — no-op on Vercel)
+  
   await fetchDbToken();
 
-  // Load persisted state
+  
   State.load();
 
-  // Hide onboarding and landing page synchronously if already logged in
+  
   if (State.data.onboarded) {
     const onboardingModal = document.getElementById('onboarding-modal');
     if (onboardingModal) onboardingModal.classList.remove('visible');
@@ -353,7 +351,7 @@ async function boot() {
     }
   }
 
-  // Load from DB if username exists to ensure sync
+  
   if (State.user.username) {
     try {
       await loadUserDataFromDB(State.user.username);
@@ -366,7 +364,7 @@ async function boot() {
     }
   }
 
-  // ── Periodic Day Rollover Checker ──
+  
   setInterval(() => {
     const todayStr = new Date().toISOString().split('T')[0];
     if (State.today.date !== todayStr) {
@@ -379,7 +377,7 @@ async function boot() {
     }
   }, 15000);
 
-  // Initialize tab router
+  
   initTabRouter();
 
   const moduleLoaders = [
@@ -418,7 +416,7 @@ async function boot() {
     { initGamification }
   ] = modules;
 
-  // Initialize all modules
+  
   initOnboarding();
   initTracker();
   initNutrition();
@@ -427,7 +425,7 @@ async function boot() {
   initGames();
   initGamification();
 
-  // Settings modal
+  
   initSettings();
   initLogout();
   initMobileNav();
@@ -436,7 +434,7 @@ async function boot() {
   console.log('🏋️ FitBuddy initialized');
 }
 
-// ──── Settings Recalculation Helpers ────
+
 const ACTIVITY_MULTIPLIERS = {
   sedentary: 1.2,
   lightly: 1.375,
@@ -473,7 +471,7 @@ export function calculateUserMetrics({ weight, height, age, gender, goal, activi
   return { bmi, tdee, macros: { protein, carbs, fat } };
 }
 
-// ──── Logout Option ────
+
 function initLogout() {
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
@@ -487,7 +485,7 @@ function initLogout() {
   }
 }
 
-// ──── Settings Modal ────
+
 function initSettings() {
   const btn = document.getElementById('settings-btn');
   const modal = document.getElementById('settings-modal');
@@ -495,7 +493,7 @@ function initSettings() {
   const save = document.getElementById('settings-save');
 
   btn.addEventListener('click', () => {
-    // Populate fields from State.user
+    
     const user = State.user;
     document.getElementById('settings-username').value = user.username || '';
     const pwdInput = document.getElementById('settings-password');
@@ -549,10 +547,10 @@ function initSettings() {
 
     const currentPassword = localStorage.getItem('fitbuddy_password') || '';
 
-    // Recalculate BMI, TDEE, Macros
+    
     const metrics = calculateUserMetrics({ weight, height, age, gender, goal, activity });
 
-    // Create a clone of the current state and apply the patches
+    
     const proposedState = JSON.parse(JSON.stringify(_state));
     Object.assign(proposedState.user, {
       username,
@@ -596,7 +594,7 @@ function initSettings() {
         return;
       }
 
-      // Success! Update password in local storage if changed
+      
       if (newPassword) {
         localStorage.setItem('fitbuddy_password', newPassword);
       }
@@ -618,7 +616,7 @@ function initSettings() {
   });
 }
 
-// ──── Mobile Navigation Controller ────
+
 function initMobileNav() {
   const navButtons = document.querySelectorAll('.mobile-nav-btn');
   const panels = {
@@ -631,10 +629,10 @@ function initMobileNav() {
     btn.addEventListener('click', () => {
       const target = btn.dataset.target;
       
-      // Toggle active button
+      
       navButtons.forEach(b => b.classList.toggle('active', b === btn));
       
-      // Toggle active panels
+      
       Object.entries(panels).forEach(([key, panel]) => {
         if (panel) {
           panel.classList.toggle('active', key === target);
@@ -643,7 +641,7 @@ function initMobileNav() {
     });
   });
 
-  // Set default active panel for mobile on load
+  
   if (window.innerWidth <= 1100) {
     const activeBtn = document.querySelector('.mobile-nav-btn.active') || navButtons[0];
     if (activeBtn) {
@@ -663,18 +661,18 @@ function initMobilePanelMenu() {
   const menuContent = document.getElementById('mobile-panel-menu-content');
   if (!menuBtn || !menuContent) return;
 
-  // Toggle dropdown on click
+  
   menuBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     menuContent.classList.toggle('show');
   });
 
-  // Close dropdown on clicking outside
+  
   document.addEventListener('click', () => {
     menuContent.classList.remove('show');
   });
 
-  // Handle dropdown link clicks
+  
   const links = menuContent.querySelectorAll('a');
   const panels = {
     left: document.getElementById('left-panel'),
@@ -690,10 +688,10 @@ function initMobilePanelMenu() {
 
       menuContent.classList.remove('show');
 
-      // Update mobile bottom nav active button
+      
       navButtons.forEach(b => b.classList.toggle('active', b.dataset.target === target));
 
-      // Toggle active panels
+      
       Object.entries(panels).forEach(([key, panel]) => {
         if (panel) {
           panel.classList.toggle('active', key === target);
@@ -705,7 +703,7 @@ function initMobilePanelMenu() {
   });
 }
 
-// ──── Boot ────
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', boot);
 } else {

@@ -1,12 +1,10 @@
-/* ============================================
-   FitBuddy — Nutrition / Meal Logging Module
-   ============================================ */
+
 
 import { State, EventBus, showToast } from './app.js';
 import { generateResponse } from './watsonx.js';
 
-// ──── Cheat-Food Dictionary ────
-// Any case-insensitive substring match against meal name OR ingredients → cheat
+
+
 const CHEAT_FOODS = [
   'pizza', 'burger', 'fries', 'french fries', 'soda', 'cola', 'pepsi',
   'coke', 'candy', 'chocolate', 'cake', 'donut', 'doughnut', 'ice cream',
@@ -28,14 +26,8 @@ const CHEAT_FOODS = [
   'sweet', 'sweets', 'candy floss', 'gummy', 'marshmallow', 'milk chocolate'
 ];
 
-/**
- * Detect whether a meal qualifies as "cheat food".
- * Checks both name and ingredients against the dictionary (case-insensitive).
- * @param {string} name  – Meal name
- * @param {string} ingredients – Comma-separated ingredients string
- * @returns {boolean}
- */
-// ──── Healthy-Food Dictionary (for calibration check) ────
+
+
 const HEALTHY_FOODS = [
   'salad', 'chicken breast', 'egg', 'eggs', 'spinach', 'broccoli', 'oats',
   'oatmeal', 'rice', 'dal', 'chapati', 'roti', 'fish', 'salmon', 'tuna',
@@ -47,13 +39,13 @@ const HEALTHY_FOODS = [
 function detectCheat(name, ingredients) {
   const combined = `${name} ${ingredients}`.toLowerCase();
   
-  // Check custom cheat foods first
+  
   const customCheats = State.settings?.customCheatFoods || [];
   if (customCheats.some(food => combined.includes(food.toLowerCase()))) {
     return true;
   }
 
-  // Check custom healthy foods next (if it's explicitly healthy, it's not a cheat)
+  
   const customHealthy = State.settings?.customHealthyFoods || [];
   if (customHealthy.some(food => combined.includes(food.toLowerCase()))) {
     return false;
@@ -62,9 +54,7 @@ function detectCheat(name, ingredients) {
   return CHEAT_FOODS.some(term => combined.includes(term));
 }
 
-/**
- * Categorize food cuisine origins based on keywords.
- */
+
 function getCuisineCategory(name, ingredients) {
   const text = `${name} ${ingredients}`.toLowerCase();
   if (/soda|cola|pepsi|coke|juice|milk|coffee|tea|smoothie|shake|drink|dew|fanta|sprite|7up|dr pepper/i.test(text)) return 'Beverage 🥤';
@@ -79,12 +69,9 @@ function getCuisineCategory(name, ingredients) {
   return 'Global Cuisine 🌐';
 }
 
-// ──── DOM Rendering ────
 
-/**
- * Render a single meal item into the meals list.
- * @param {Object} meal
- */
+
+
 function renderMealItem(meal) {
   const div = document.createElement('div');
   div.className = 'log-item';
@@ -113,21 +100,19 @@ function renderMealItem(meal) {
   return div;
 }
 
-/**
- * Rebuild the full meals list + summary cards from State.
- */
+
 function renderAllMeals() {
   const list = document.getElementById('meals-list');
   const empty = document.getElementById('meals-empty');
   const meals = State.today.meals;
 
-  // Clear everything except the empty-state placeholder
+  
   list.querySelectorAll('.log-item, .category-header').forEach(el => el.remove());
 
   if (meals.length > 0) {
     empty.style.display = 'none';
     
-    // Group by category
+    
     const grouped = {};
     meals.forEach(m => {
       const cat = m.category || 'Breakfast';
@@ -190,7 +175,7 @@ function updateMealProgressBars(meals) {
     Dinner: '🍽️'
   };
 
-  // Only render categories that have logged calories today (First Food -> Then Calorie Tracker activation)
+  
   const activeCategories = Object.keys(targets).filter(cat => logged[cat] > 0);
 
   if (activeCategories.length === 0) {
@@ -242,7 +227,7 @@ function updateNutritionSummary(meals) {
       totalCarbs   += calculated.carbs;
       totalFat     += calculated.fat;
       totalFiber   += calculated.fiber;
-      // populate in memory
+      
       m.protein = calculated.protein;
       m.carbs = calculated.carbs;
       m.fat = calculated.fat;
@@ -260,11 +245,11 @@ function updateNutritionSummary(meals) {
   if (fEl) fEl.textContent = `${Math.round(totalFat)}g`;
   if (fibEl) fibEl.textContent = `${Math.round(totalFiber)}g`;
 
-  // Update level progress bars
+  
   updateMealProgressBars(meals);
 }
 
-// ──── Ingredient Database & Calorie Estimator ────
+
 const INGREDIENT_DB = {
   egg: { base: 78, protein: 6, carbs: 0.6, fat: 5, fiber: 0, perUnit: true },
   eggs: { base: 78, protein: 6, carbs: 0.6, fat: 5, fiber: 0, perUnit: true },
@@ -316,7 +301,7 @@ const INGREDIENT_DB = {
   protein: { base: 120, protein: 25, carbs: 2, fat: 1, fiber: 1, perUnit: true },
   whey: { base: 120, protein: 25, carbs: 2, fat: 1, fiber: 1, perUnit: true },
   
-  // Indian Snacks / Fast Foods
+  
   samosa: { base: 260, protein: 5, carbs: 32, fat: 13, fiber: 2, perUnit: true, perGram: { cal: 3.0, protein: 0.06, carbs: 0.37, fat: 0.15, fiber: 0.02 } },
   samosas: { base: 260, protein: 5, carbs: 32, fat: 13, fiber: 2, perUnit: true, perGram: { cal: 3.0, protein: 0.06, carbs: 0.37, fat: 0.15, fiber: 0.02 } },
   pakora: { base: 50, protein: 1, carbs: 6, fat: 2.5, fiber: 0.8, perUnit: true, perGram: { cal: 3.0, protein: 0.06, carbs: 0.36, fat: 0.15, fiber: 0.05 } },
@@ -446,20 +431,20 @@ export function parseAndEstimateCalories(ingredientsStr) {
 }
 
 async function estimateNutritionWithAI(name, ingredients, enteredCalories) {
-  // 1. Run local database calculation first
+  
   const local = calculateMacrosForMeal(name, ingredients, enteredCalories);
   
-  // Count distinct ingredient items in the query
+  
   const queryText = (ingredients.trim() || name.trim()).toLowerCase();
   const itemsCount = queryText.split(/[,\n]/).map(x => x.trim()).filter(Boolean).length;
 
-  // 2. Trust the local DB if we matched all ingredients! (e.g. "20 ml oil" matches exactly)
+  
   if (local.matchedCount >= itemsCount && local.calories > 0) {
     console.log(`Local DB matched all ${itemsCount} ingredients. Skipping AI estimation for speed and precision.`);
     return local;
   }
 
-  // 3. Fallback to AI for complex queries or unknown foods
+  
   const prompt = `<|begin_of_text|><|start_header_id|>system<|end_header_id|>
 You are a precise nutrition calculator. Estimate the nutritional values (calories, protein, carbs, fat, fiber) for the food: "${name}" with ingredients: "${ingredients || 'standard recipe'}".
 Use verified USDA and IFCT (Indian Food Composition Tables) data. Be extremely accurate.
@@ -502,11 +487,11 @@ Calculate nutrition for: ${name}<|eot_id|><|start_header_id|>assistant<|end_head
 function isNewFood(name) {
   const normalized = name.toLowerCase().trim();
   
-  // If the exact full name matches a custom preference, it is not new
+  
   if ((State.settings?.customCheatFoods || []).includes(normalized)) return false;
   if ((State.settings?.customHealthyFoods || []).includes(normalized)) return false;
   
-  // Split into words, filter out common short words and cooking modifiers
+  
   const modifiers = new Set([
     'grilled', 'fried', 'boiled', 'baked', 'spicy', 'hot', 'fresh', 'sweet', 
     'dry', 'roasted', 'steamed', 'with', 'and', 'a', 'an', 'the', 'cooked', 
@@ -515,10 +500,10 @@ function isNewFood(name) {
   
   const words = normalized.split(/\s+/).map(w => w.replace(/[^a-z]/g, '')).filter(w => w.length > 2 && !modifiers.has(w));
   
-  // If no main words left (e.g. just "rice"), check if it matches a known healthy/cheat item exactly
+  
   if (words.length === 0) return false;
   
-  // Check if ANY of the main words in the food name are completely unknown
+  
   const isWordKnown = (word) => {
     const inCheat = CHEAT_FOODS.some(term => term === word || term.split(/\s+/).includes(word));
     const inHealthy = HEALTHY_FOODS.some(term => term === word || term.split(/\s+/).includes(word));
@@ -529,15 +514,12 @@ function isNewFood(name) {
   return hasUnknownWord;
 }
 
-// ──── Module Init ────
 
-/**
- * Initialize the Nutrition module.
- * Sets up modal interactions, meal logging, cheat detection, and XP rewards.
- */
+
+
 export function initNutrition() {
   let editingMealId = null;
-  // DOM references
+  
   const modal      = document.getElementById('meal-modal');
   const addBtn     = document.getElementById('add-meal-btn');
   const cancelBtn  = document.getElementById('meal-cancel');
@@ -548,7 +530,7 @@ export function initNutrition() {
   const catInput   = document.getElementById('meal-category');
   const list       = document.getElementById('meals-list');
 
-  // ── Open modal ──
+  
   addBtn.addEventListener('click', () => {
     editingMealId = null;
     nameInput.value = '';
@@ -560,17 +542,17 @@ export function initNutrition() {
     modal.classList.add('visible');
   });
 
-  // ── Close modal ──
+  
   cancelBtn.addEventListener('click', () => {
     modal.classList.remove('visible');
   });
 
-  // ── Close on backdrop click ──
+  
   modal.addEventListener('click', (e) => {
     if (e.target === modal) modal.classList.remove('visible');
   });
 
-  // ── Delegation for Edit / Delete ──
+  
   list.addEventListener('click', (e) => {
     const btn = e.target.closest('.action-btn');
     if (!btn) return;
@@ -603,32 +585,32 @@ export function initNutrition() {
     }
   });
 
-  // ── Auto-calculate calories from ingredients in real-time ──
+  
   ingInput.addEventListener('input', () => {
     const estimated = parseAndEstimateCalories(ingInput.value);
     calInput.value = estimated > 0 ? estimated : '';
   });
 
-  // ── Submit meal ──
+  
   submitBtn.addEventListener('click', async () => {
     const name     = nameInput.value.trim();
     const ingredients = ingInput.value.trim();
     let calories = parseInt(calInput.value, 10);
 
-    // Basic validation
+    
     if (!name) {
       showToast('Please enter a meal name.', '⚠️');
       return;
     }
 
-    // Disable submit button and show loading state
+    
     submitBtn.disabled = true;
     const oldText = submitBtn.textContent;
     submitBtn.textContent = 'Analyzing macros... 🤖';
 
     let macros;
     try {
-      // Direct internet-like lookup using AI
+      
       macros = await estimateNutritionWithAI(name, ingredients, calories);
       calories = macros.calories;
     } catch (err) {
@@ -640,7 +622,7 @@ export function initNutrition() {
       submitBtn.textContent = oldText;
     }
 
-    // Cheat detection & unknown food verification
+    
     let isCheat = detectCheat(name, ingredients);
     const normalizedName = name.toLowerCase().trim();
 
@@ -719,7 +701,7 @@ export function initNutrition() {
     modal.classList.remove('visible');
   });
 
-  // ── Restore persisted meals on load ──
+  
   renderAllMeals();
 
   console.log('🍎 Nutrition module initialized');

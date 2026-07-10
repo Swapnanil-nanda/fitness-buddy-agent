@@ -1,11 +1,8 @@
-/* ============================================
-   FitBuddy — Premium Glassmorphism Design System
-   True Dark Mode · iOS-Native Feel
-   ============================================ */
+
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-/* ──── Reset & Base ──── */
+
 *, *::before, *::after {
   margin: 0;
   padding: 0;
@@ -31,7 +28,7 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ──── Design Tokens ──── */
+
 :root {
   --bg: #000000;
   --bg-elevated: #0a0a0a;
@@ -74,7 +71,7 @@ html, body {
   --t-bounce: 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
-/* ──── Layout: 3-Column Grid ──── */
+
 #app-container {
   display: grid;
   grid-template-columns: 300px 1fr 340px;
@@ -88,7 +85,7 @@ html, body {
   overflow: hidden;
 }
 
-/* ──── XP Bar (Top) ──── */
+
 #xp-bar-section {
   grid-area: xp;
   display: flex;
@@ -169,7 +166,7 @@ html, body {
 #settings-btn:hover { background: var(--glass-hover); color: var(--text-1); }
 #settings-btn:active { transform: scale(0.92); }
 
-/* ──── Panel Base Styles ──── */
+
 .panel {
   overflow-y: auto;
   overflow-x: hidden;
@@ -213,7 +210,7 @@ html, body {
   min-height: 0;
 }
 
-/* ──── Glass Card ──── */
+
 .glass-card {
   background: var(--glass);
   border: 1px solid var(--glass-border);
@@ -238,7 +235,7 @@ html, body {
   margin-bottom: 14px;
 }
 
-/* ──── Trinity Rings ──── */
+
 #trinity-rings {
   display: flex;
   flex-direction: column;
@@ -319,7 +316,7 @@ html, body {
 .legend-dot.active { background: var(--green); }
 .legend-dot.diet { background: var(--blue); }
 
-/* ──── Mood Selector ──── */
+
 #mood-section { padding: 18px; }
 
 .mood-grid {
@@ -360,7 +357,7 @@ html, body {
   white-space: nowrap;
 }
 
-/* ──── Hydration Tracker ──── */
+
 #hydration-section { padding: 18px; }
 
 .hydration-header {
@@ -419,7 +416,7 @@ html, body {
 .water-glass:hover { transform: translateY(-2px); }
 .water-glass:active { transform: scale(0.92); }
 
-/* ──── Sleep Tracker ──── */
+
 #sleep-section { padding: 18px; }
 
 .sleep-display {
@@ -476,7 +473,7 @@ html, body {
 
 #sleep-slider::-webkit-slider-thumb:active { transform: scale(1.2); }
 
-/* ──── Chat Interface ──── */
+
 #chat-header {
   padding: 16px 24px;
   border-bottom: 1px solid var(--glass-border);
@@ -579,7 +576,7 @@ html, body {
   border-radius: var(--r-md);
 }
 
-/* Typing Indicator */
+
 #typing-indicator {
   align-self: flex-start;
   display: none;
@@ -604,7 +601,7 @@ html, body {
 .typing-dot:nth-child(2) { animation-delay: 0.15s; }
 .typing-dot:nth-child(3) { animation-delay: 0.3s; }
 
-/* Chat Input */
+
 #chat-input-bar {
   padding: 16px 24px;
   border-top: 1px solid var(--glass-border);
@@ -650,7 +647,7 @@ html, body {
 #chat-send-btn:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(10, 132, 255, 0.35); }
 #chat-send-btn:active { transform: scale(0.92); }
 
-/* Recipe Card (in chat) */
+
 .recipe-card {
   background: var(--glass);
   border: 1px solid var(--glass-border-light);
@@ -712,7 +709,7 @@ html, body {
 
 .recipe-card .yt-link:hover { background: rgba(255, 69, 58, 0.2); }
 
-/* ──── Right Panel: Tab Bar ──── */
+
 #tab-bar {
   display: flex;
   border-bottom: 1px solid var(--glass-border);
@@ -756,7 +753,7 @@ html, body {
 
 .tab-pane.active { display: block; }
 
-/* ──── Nutrition & Exercise Lists ──── */
+
 .summary-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -848,7 +845,7 @@ html, body {
 .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
 .empty-state p { font-size: 12px; }
 
-/* Floating Add Button */
+
 .fab {
   position: absolute;
   bottom: 20px;
@@ -873,7 +870,7 @@ html, body {
 .fab.nutrition { background: var(--grad-nature); box-shadow: 0 4px 25px rgba(48, 209, 88, 0.3); }
 .fab.exercise { background: var(--grad-fire); box-shadow: 0 4px 25px rgba(255, 69, 58, 0.3); }
 
-/* ──── Exercise Tab: Mental-health Lock Overlay ──── */
+
 .exercise-lock-overlay {
   position: absolute;
   top: 0;
@@ -919,7 +916,7 @@ html, body {
   line-height: 1.6;
 }
 
-/* Unlock flash animation — plays once when exercise tab unlocks */
+
 @keyframes unlock-flash {
   0%   { box-shadow: 0 0 0 0 rgba(48, 209, 88, 0); }
   40%  { box-shadow: 0 0 0 12px rgba(48, 209, 88, 0.3); }
@@ -930,7 +927,7 @@ html, body {
   animation: unlock-flash 0.7s ease forwards;
 }
 
-/* ──── Daily Challenges ──── */
+
 .challenges-section { margin-bottom: 20px; }
 
 .challenge-card {
@@ -1023,7 +1020,7 @@ html, body {
   background: rgba(255, 255, 255, 0.1);
 }
 
-/* ──── Game Cards ──── */
+
 .games-grid {
   display: flex;
   flex-direction: column;
@@ -1063,7 +1060,7 @@ html, body {
 .game-info .game-name { font-weight: 700; font-size: 14px; }
 .game-info .game-desc { font-size: 11px; color: var(--text-3); margin-top: 2px; }
 
-/* ──── Game Area (Fullscreen Overlay) ──── */
+
 #game-overlay {
   display: none;
   position: fixed;
@@ -1135,7 +1132,7 @@ html, body {
   margin-bottom: 30px;
 }
 
-/* Zen Breather */
+
 .breather-circle {
   width: 140px;
   height: 140px;
@@ -1173,7 +1170,7 @@ html, body {
   box-shadow: 0 10px 30px rgba(100, 210, 255, 0.4);
 }
 
-/* Reflex Dash */
+
 .reflex-area {
   width: 100%;
   height: 350px;
@@ -1208,7 +1205,7 @@ html, body {
   pointer-events: none;
 }
 
-/* Hamster Smash */
+
 .hamster-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1239,7 +1236,7 @@ html, body {
 
 .hamster-hole:active { transform: scale(0.9); }
 
-/* ──── Modals ──── */
+
 .modal-overlay {
   display: none;
   position: fixed;
@@ -1362,7 +1359,7 @@ html, body {
 .form-textarea:focus { border-color: var(--glass-border-focus); }
 .form-textarea::placeholder { color: var(--text-3); }
 
-/* Inline computed displays */
+
 .computed-display {
   display: flex;
   align-items: center;
@@ -1389,7 +1386,7 @@ html, body {
 .bmi-indicator.overweight { background: rgba(255, 159, 10, 0.15); color: var(--orange); }
 .bmi-indicator.obese { background: rgba(255, 69, 58, 0.15); color: var(--red); }
 
-/* Buttons */
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -1450,7 +1447,7 @@ html, body {
 
 .btn-row .btn { flex: 1; }
 
-/* Warning banner inside modals */
+
 .warning-banner {
   display: none;
   padding: 14px 16px;
@@ -1467,7 +1464,7 @@ html, body {
 
 .warning-banner strong { display: block; margin-bottom: 4px; font-size: 13px; }
 
-/* ──── Post-Game Modal ──── */
+
 #postgame-modal .modal {
   text-align: center;
   max-width: 360px;
@@ -1478,7 +1475,7 @@ html, body {
   margin-bottom: 16px;
 }
 
-/* ──── Keyframe Animations ──── */
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -1544,7 +1541,7 @@ html, body {
   100% { background-position: 200% 0; }
 }
 
-/* ──── Settings Recalculation Helpers ──── */
+
 .action-buttons {
   display: flex;
   gap: 4px;
@@ -1566,7 +1563,7 @@ html, body {
   background: rgba(255, 255, 255, 0.1);
 }
 
-/* ──── Notification Toast ──── */
+
 .toast {
   position: fixed;
   bottom: 30px;
@@ -1593,7 +1590,7 @@ html, body {
 .toast.visible { transform: translateX(-50%) translateY(0); }
 .toast .toast-icon { font-size: 18px; }
 
-/* ──── Responsive ──── */
+
 @media (max-width: 1100px) {
   #app-container {
     display: block !important;
@@ -1662,7 +1659,7 @@ html, body {
   }
 }
 
-/* ──── Utility ──── */
+
 .hidden { display: none !important; }
 .text-center { text-align: center; }
 .mt-8 { margin-top: 8px; }
@@ -1670,7 +1667,7 @@ html, body {
 .mb-8 { margin-bottom: 8px; }
 .gap-8 { gap: 8px; }
 
-/* ──── Animated Background Blobs ──── */
+
 .bg-blob {
   position: absolute;
   border-radius: 50%;
@@ -1718,7 +1715,7 @@ html, body {
   }
 }
 
-/* ------- Initialize Lab Landing Page ------- */
+
 .lab-overlay {
   position: fixed;
   top: 0;
@@ -1778,7 +1775,7 @@ html, body {
   box-shadow: 0 10px 40px rgba(255, 255, 255, 0.1);
 }
 
-/* ------- Mobile Bottom Navigation Bar ------- */
+
 #mobile-nav {
   display: none;
   position: fixed;
@@ -1839,7 +1836,7 @@ html, body {
   transform: scale(1.1);
 }
 
-/* ------- Mobile Landing Centering Adjustment ------- */
+
 @media (max-width: 768px) {
   .landing-title {
     font-size: 38px !important;
@@ -1861,7 +1858,7 @@ html, body {
   }
 }
 
-/* ------- Header Dropdown Menu (Mobile Only) ------- */
+
 #mobile-panel-dropdown {
   display: none;
   position: relative;

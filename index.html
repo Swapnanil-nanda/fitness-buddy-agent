@@ -10,7 +10,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏋️</text></svg>">
 </head>
 <body>
-  <!-- ═══════ Initialize Lab Landing Page ═══════ -->
+  
   <div id="init-lab-page" class="lab-overlay visible">
     <div class="landing-content">
       <h1 class="landing-title">Fitness that<br>thinks.</h1>
@@ -19,14 +19,14 @@
     </div>
   </div>
 
-  <!-- Ambient Background Blobs -->
+  
   <div class="bg-blob blob-1"></div>
   <div class="bg-blob blob-2"></div>
   <div class="bg-blob blob-3"></div>
 
   <div id="app-container">
 
-  <!-- ═══════ XP Bar (Top) ═══════ -->
+  
   <section id="xp-bar-section">
     <div id="level-badge">
       <span class="level-icon" id="level-icon">🌱</span>
@@ -35,7 +35,7 @@
     <div id="xp-track"><div id="xp-fill" style="width: 0%"></div></div>
     <span id="xp-text">0 / 100 XP</span>
     <div style="flex-grow: 1;"></div>
-    <!-- Three-dot Panel Switcher (Mobile Only) -->
+    
     <div id="mobile-panel-dropdown" class="dropdown">
       <button id="mobile-panel-menu-btn" title="Switch View">⋮</button>
       <div id="mobile-panel-menu-content" class="dropdown-content">
@@ -48,23 +48,23 @@
     <button id="logout-btn" title="Log Out & Reset App" style="background: transparent; border: none; font-size: 16px; cursor: pointer; padding: 6px; border-radius: 50%; transition: background 0.2s; margin-left: 8px;">🚪</button>
   </section>
 
-  <!-- ═══════ Left Panel ═══════ -->
+  
   <aside id="left-panel" class="panel">
 
-    <!-- Trinity Rings -->
+    
     <div id="trinity-rings" class="glass-card">
       <p class="section-title">Daily Progress</p>
       <div class="rings-container">
         <svg viewBox="0 0 200 200">
-          <!-- Kcal Ring (outer) -->
+          
           <circle class="ring-bg" cx="100" cy="100" r="90" stroke-width="7"/>
           <circle class="ring-progress ring-kcal" id="ring-kcal" cx="100" cy="100" r="90" stroke-width="7"
             stroke-dasharray="565.49" stroke-dashoffset="565.49"/>
-          <!-- Active Ring (middle) -->
+          
           <circle class="ring-bg" cx="100" cy="100" r="75" stroke-width="7"/>
           <circle class="ring-progress ring-active" id="ring-active" cx="100" cy="100" r="75" stroke-width="7"
             stroke-dasharray="471.24" stroke-dashoffset="471.24"/>
-          <!-- Diet Quality Ring (inner) -->
+          
           <circle class="ring-bg" cx="100" cy="100" r="60" stroke-width="7"/>
           <circle class="ring-progress ring-diet" id="ring-diet" cx="100" cy="100" r="60" stroke-width="7"
             stroke-dasharray="376.99" stroke-dashoffset="376.99"/>
@@ -81,7 +81,7 @@
       </div>
     </div>
 
-    <!-- Mood Selector -->
+    
     <div id="mood-section" class="glass-card">
       <p class="section-title">How are you feeling?</p>
       <div class="mood-grid">
@@ -93,7 +93,7 @@
       </div>
     </div>
 
-    <!-- Hydration Tracker -->
+    
     <div id="hydration-section" class="glass-card">
       <div class="hydration-header">
         <p class="section-title" style="margin-bottom:0">Hydration</p>
@@ -116,11 +116,11 @@
       </div>
 
       <div class="water-glasses" id="water-glasses" style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px;">
-        <!-- Generated dynamically in tracker.js -->
+        
       </div>
     </div>
 
-    <!-- Sleep Tracker -->
+    
     <div id="sleep-section" class="glass-card">
       <p class="section-title">Last Night's Sleep</p>
       <div class="sleep-display">
@@ -130,17 +130,17 @@
       <input type="range" id="sleep-slider" min="0" max="12" step="0.5" value="7">
     </div>
 
-    <!-- Daily Challenges -->
+    
     <div id="challenges-container" class="glass-card">
       <p class="section-title">Daily Tasks</p>
       <div id="challenges-list">
-        <!-- Rendered dynamically -->
+        
       </div>
     </div>
 
   </aside>
 
-  <!-- ═══════ Center Panel: AI Chat ═══════ -->
+  
   <main id="center-panel">
     <div id="chat-header">
       <div class="chat-avatar">🤖</div>
@@ -151,7 +151,7 @@
     </div>
 
     <div id="chat-messages">
-      <!-- Messages rendered dynamically -->
+      
       <div id="typing-indicator">
         <span class="typing-dot"></span>
         <span class="typing-dot"></span>
@@ -165,7 +165,7 @@
     </div>
   </main>
 
-  <!-- ═══════ Right Panel: Tabs ═══════ -->
+  
   <aside id="right-panel">
     <div id="tab-bar">
       <button class="tab-btn active" data-tab="nutrition">🍎 Nutrition</button>
@@ -175,7 +175,7 @@
 
     <div id="tab-content">
 
-      <!-- Nutrition Tab -->
+      
       <div id="nutrition-tab" class="tab-pane active">
         <div class="summary-grid" id="nutrition-summary">
           <div class="summary-card"><div class="value" id="nut-carbs">0g</div><div class="label">Carbs</div></div>
@@ -184,10 +184,10 @@
           <div class="summary-card"><div class="value" id="nut-fiber">0g</div><div class="label">Fiber</div></div>
         </div>
         
-        <!-- Meal Calories & Targets (Weight Program splits) -->
+        
         <p class="section-title" style="margin-top: 15px;">Meal Progress Bars</p>
         <div id="meal-progress-bars" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
-          <!-- Generated dynamically in nutrition.js -->
+          
         </div>
         <p class="section-title">Today's Meals</p>
         <div class="log-list" id="meals-list">
@@ -199,9 +199,9 @@
         <button class="fab nutrition" id="add-meal-btn" title="Log Meal">+</button>
       </div>
 
-      <!-- Exercise Tab -->
+      
       <div id="exercise-tab" class="tab-pane">
-        <!-- Mental-health lock overlay — shown when mood is sad/stressed/exhausted -->
+        
         <div id="exercise-lock-overlay" class="exercise-lock-overlay hidden">
           <div class="exercise-lock-content">
             <div class="exercise-lock-icon">🧠</div>
@@ -228,7 +228,7 @@
         <button class="fab exercise" id="add-exercise-btn" title="Log Exercise">+</button>
       </div>
 
-      <!-- Play Tab -->
+      
       <div id="play-tab" class="tab-pane">
 
         <p class="section-title">Mini Games</p>
@@ -269,12 +269,12 @@
 
 </div>
 
-<!-- ═══════ MODALS ═══════ -->
 
-<!-- Onboarding Modal -->
+
+
 <div class="modal-overlay" id="onboarding-modal">
   <div class="modal">
-    <!-- Main Sign Up / Sign In Form -->
+    
     <div id="onboard-main-section">
       <div class="text-center" style="margin-bottom: 20px">
         <div style="font-size: 48px; margin-bottom: 8px">🏋️</div>
@@ -360,7 +360,7 @@
   </div>
 </div>
 
-<!-- Meal Log Modal -->
+
 <div class="modal-overlay" id="meal-modal">
   <div class="modal">
     <div class="modal-title">Log a Meal</div>
@@ -394,7 +394,7 @@
   </div>
 </div>
 
-<!-- Exercise Log Modal -->
+
 <div class="modal-overlay" id="exercise-modal">
   <div class="modal">
     <div class="modal-title">Log Exercise</div>
@@ -445,7 +445,7 @@
   </div>
 </div>
 
-<!-- Settings Modal -->
+
 <div class="modal-overlay" id="settings-modal">
   <div class="modal">
     <div class="modal-title">Settings & Profile</div>
@@ -570,7 +570,7 @@
 </div>
 
 
-<!-- Task Modal -->
+
 <div class="modal-overlay" id="task-modal">
   <div class="modal">
     <div class="modal-title" id="task-modal-title">Log a Task</div>
@@ -591,7 +591,7 @@
 </div>
 
 
-<!-- Post-Game Modal -->
+
 <div class="modal-overlay" id="postgame-modal">
   <div class="modal text-center">
     <div class="postgame-emoji">🎉</div>
@@ -605,7 +605,7 @@
 </div>
 
 
-<!-- Game Overlay -->
+
 <div id="game-overlay">
   <button id="game-close-btn" title="Exit Game">✕</button>
   <div id="game-area">
@@ -616,7 +616,7 @@
   </div>
 </div>
 
-  <!-- Mobile Bottom Navigation -->
+  
   <nav id="mobile-nav">
     <button class="mobile-nav-btn active" data-target="left">
       <span class="nav-icon">📊</span>
@@ -632,13 +632,13 @@
     </button>
   </nav>
 
-  <!-- Toast Notification -->
+  
   <div class="toast" id="toast">
   <span class="toast-icon" id="toast-icon">✨</span>
   <span id="toast-text">Notification</span>
 </div>
 
-<!-- ═══════ Scripts ═══════ -->
+
 <script>
   (() => {
     const labPage = document.getElementById('init-lab-page');

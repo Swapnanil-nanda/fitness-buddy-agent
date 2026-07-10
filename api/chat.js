@@ -1,10 +1,10 @@
-// Vercel Serverless Function — POST /api/chat
-// Proxies chat requests to IBM watsonx.ai via server-side prompt compilation.
+
+
 
 const { compileServerPrompt, getIAMToken } = require('./_lib');
 
 module.exports = async function handler(req, res) {
-  // CORS
+  
   const origin = req.headers.origin;
   res.setHeader('Access-Control-Allow-Origin', origin || '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -37,13 +37,13 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // Compile the full Llama-3 prompt with system context
+    
     const prompt = compileServerPrompt(message, history, context);
 
-    // Get IAM bearer token (cached for 50 min)
+    
     const token = await getIAMToken(apiKey);
 
-    // Call watsonx.ai text generation
+    
     const wxRes = await fetch(
       `https://${region}.ml.cloud.ibm.com/ml/v1/text/generation?version=2025-02-06`,
       {

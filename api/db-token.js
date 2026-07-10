@@ -1,9 +1,9 @@
-// Vercel Serverless Function — GET /api/db-token
-// Returns the shared DB_TOKEN from environment variable.
-// All serverless instances share the same token, preventing random rejections.
+
+
+
 
 module.exports = function handler(req, res) {
-  // CORS
+  
   const origin = req.headers.origin;
   res.setHeader('Access-Control-Allow-Origin', origin || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');

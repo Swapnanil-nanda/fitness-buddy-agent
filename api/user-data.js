@@ -1,17 +1,17 @@
-// Vercel Serverless Function — GET/POST /api/user-data
-// Handles user login (GET) and registration/update (POST).
-// Uses Redis (via ioredis) for persistent storage.
+
+
+
 
 const db = require('./_db');
 
 function isValidToken(req) {
   const token = process.env.DB_TOKEN;
-  if (!token) return true; // No token configured = skip check
+  if (!token) return true; 
   return req.headers['x-db-token'] === token;
 }
 
 module.exports = async function handler(req, res) {
-  // CORS
+  
   const origin = req.headers.origin;
   res.setHeader('Access-Control-Allow-Origin', origin || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -21,12 +21,12 @@ module.exports = async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // ── Token guard ──
+  
   if (!isValidToken(req)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  // ──────────── GET — Login / Fetch User ────────────
+  
   if (req.method === 'GET') {
     try {
       const username = req.query.username;
@@ -41,7 +41,7 @@ module.exports = async function handler(req, res) {
         return res.status(200).json({ success: true, exists: false, data: null });
       }
 
-      // Verify password if the user has one
+      
       if (userRecord.hash) {
         if (!password) {
           return res.status(401).json({ success: false, error: 'Password required' });
@@ -60,7 +60,7 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // ──────────── POST — Register / Update User ────────────
+  
   if (req.method === 'POST') {
     try {
       const { username, password, newPassword, state } = req.body;

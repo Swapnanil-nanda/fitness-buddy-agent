@@ -1,34 +1,28 @@
-/* ============================================
-   FitBuddy — Onboarding Wizard Module
-   Real-time BMI, TDEE (Mifflin-St Jeor), Macros
-   ============================================ */
+
 
 import { State, EventBus, getApiBaseUrl, showToast, dbHeaders } from './app.js';
 
-// ──── Constants ────
-const ACTIVITY_MULTIPLIER = 1.375; // Lightly active default
+
+const ACTIVITY_MULTIPLIER = 1.375; 
 const KCAL_PER_G_PROTEIN = 4;
 const KCAL_PER_G_CARBS   = 4;
 const KCAL_PER_G_FAT     = 9;
 
-// Macro split ratios
+
 const MACRO_PROTEIN_PCT = 0.30;
 const MACRO_CARBS_PCT   = 0.40;
 const MACRO_FAT_PCT     = 0.30;
 
-// Goal calorie adjustments
+
 const GOAL_ADJUSTMENTS = {
   loss:     -500,
   maintain:  0,
   gain:      300
 };
 
-/**
- * Initialise the onboarding wizard.
- * Sets up input listeners for real-time calculation and the submit handler.
- */
+
 export function initOnboarding() {
-  // ── DOM References ──
+  
   const usernameInput = document.getElementById('onboard-username');
   const passwordInput = document.getElementById('onboard-password');
   const weightInput  = document.getElementById('onboard-weight');
@@ -37,7 +31,7 @@ export function initOnboarding() {
   const genderSelect = document.getElementById('onboard-gender');
   const submitBtn    = document.getElementById('onboard-submit');
 
-  // Computed display elements
+  
   const bmiDisplay   = document.getElementById('bmi-display');
   const bmiValue     = document.getElementById('bmi-value');
   const bmiIndicator = document.getElementById('bmi-indicator');
@@ -47,7 +41,7 @@ export function initOnboarding() {
   const tdeeValue    = document.getElementById('tdee-value');
   const modal        = document.getElementById('onboarding-modal');
 
-  // ── Recalculate on every input change, blur, or interaction ──
+  
   const inputs = [usernameInput, passwordInput, weightInput, heightInput, ageInput, genderSelect];
   inputs.forEach(el => {
     if (el) {
@@ -58,14 +52,11 @@ export function initOnboarding() {
   });
   genderSelect.addEventListener('change', recalculate);
 
-  // Extra fail-safe: recalculate on any touch or click inside the modal to capture autofills
+  
   modal.addEventListener('click', recalculate);
   modal.addEventListener('touchstart', recalculate, { passive: true });
 
-  /**
-   * Core recalculation pipeline.
-   * Runs on every keystroke / dropdown change.
-   */
+  
   function recalculate() {
     const username = usernameInput.value.trim();
     const password = passwordInput ? passwordInput.value : '';
@@ -74,7 +65,7 @@ export function initOnboarding() {
     const age    = parseInt(ageInput.value, 10);
     const gender = genderSelect.value;
 
-    // ── Validate inputs ──
+    
     const validUsername = username.length >= 2;
     const validPassword = password.length >= 4;
     const validWeight = weight >= 20 && weight <= 300;
@@ -82,10 +73,10 @@ export function initOnboarding() {
     const validAge    = age >= 10 && age <= 120;
     const allValid    = validUsername && validPassword && validWeight && validHeight && validAge;
 
-    // Enable / disable submit
+    
     submitBtn.disabled = !allValid;
 
-    // Toggle valid/invalid visual feedback classes if user has typed something
+    
     usernameInput.classList.toggle('invalid-input', username.length > 0 && !validUsername);
     if (passwordInput) passwordInput.classList.toggle('invalid-input', password.length > 0 && !validPassword);
     weightInput.classList.toggle('invalid-input', weightInput.value.length > 0 && !validWeight);
@@ -99,13 +90,13 @@ export function initOnboarding() {
     let carbsG = null;
     let fatG = null;
 
-    // ── 1. BMI & Goal (Needs valid weight & height) ──
+    
     if (validWeight && validHeight) {
       const heightM = height / 100;
       const bmi = weight / (heightM * heightM);
       bmiRounded = bmi.toFixed(1);
 
-      // Classify
+      
       let bmiClass, bmiLabel;
       if (bmi < 18.5) {
         bmiClass = 'underweight'; bmiLabel = 'Underweight';
@@ -117,13 +108,13 @@ export function initOnboarding() {
         bmiClass = 'obese';       bmiLabel = 'Obese';
       }
 
-      // Update BMI display
+      
       bmiDisplay.style.display = 'flex';
       bmiValue.textContent     = bmiRounded;
       bmiIndicator.textContent = bmiLabel;
       bmiIndicator.className   = `bmi-indicator ${bmiClass}`;
 
-      // ── Auto-suggest goal ──
+      
       let goalLabel;
       if (bmi < 18.5) {
         goalKey = 'gain';     goalLabel = 'Gain Weight';
@@ -140,9 +131,9 @@ export function initOnboarding() {
       goalDisplay.style.display = 'none';
     }
 
-    // ── 2. TDEE & Macros (Needs valid weight, height, and age) ──
+    
     if (validWeight && validHeight && validAge) {
-      // Get suggested goal from BMI
+      
       const heightM = height / 100;
       const bmi = weight / (heightM * heightM);
       let calculatedGoalKey;
@@ -164,7 +155,7 @@ export function initOnboarding() {
       tdeeDisplay.style.display = 'flex';
       tdeeValue.textContent     = `${adjustedTDEE} kcal`;
 
-      // Macros from adjusted TDEE
+      
       proteinG = Math.round((adjustedTDEE * MACRO_PROTEIN_PCT) / KCAL_PER_G_PROTEIN);
       carbsG   = Math.round((adjustedTDEE * MACRO_CARBS_PCT)   / KCAL_PER_G_CARBS);
       fatG     = Math.round((adjustedTDEE * MACRO_FAT_PCT)     / KCAL_PER_G_FAT);
@@ -172,7 +163,7 @@ export function initOnboarding() {
       tdeeDisplay.style.display = 'none';
     }
 
-    // ── 3. Final submission package (Only sets when all fields are valid) ──
+    
     if (allValid && bmiRounded && goalKey && adjustedTDEE) {
       _computed = {
         bmi: parseFloat(bmiRounded),
@@ -191,13 +182,13 @@ export function initOnboarding() {
     }
   }
 
-  // Holds the latest computed values
+  
   let _computed = null;
 
-  // Run once initially to handle any pre-filled or browser autofilled values
+  
   recalculate();
 
-  // ── Submit Handler ──
+  
   submitBtn.addEventListener('click', async () => {
     if (!_computed) return;
 

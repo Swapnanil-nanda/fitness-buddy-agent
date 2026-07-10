@@ -1,12 +1,10 @@
-/* ============================================
-   FitBuddy — Exercise Logging Module
-   ============================================ */
+
 
 import { State, EventBus, showToast } from './app.js';
 import { generateResponse } from './watsonx.js';
 
-// ──── MET Values (Metabolic Equivalent of Task) ────
-// burn = MET × weight_kg × (time_min / 60)
+
+
 const MET_TABLE = {
   running: 9.8,
   walking: 3.5,
@@ -17,14 +15,9 @@ const MET_TABLE = {
   other: 5.0
 };
 
-/**
- * Calculate calories burned for an exercise based on MET and duration.
- * @param {string} activity – Activity key from MET_TABLE
- * @param {number} time     – Duration in minutes
- * @returns {number} Rounded calorie burn
- */
+
 function calculateBurn(activity, time) {
-  const weight = State.user.weight || 70; // fallback 70 kg
+  const weight = State.user.weight || 70; 
   const met = MET_TABLE[activity] || MET_TABLE.other;
 
   if (time && time > 0) {
@@ -34,19 +27,15 @@ function calculateBurn(activity, time) {
   return 0;
 }
 
-// ──── DOM Rendering ────
 
-/**
- * Render a single exercise item.
- * @param {Object} exercise
- * @returns {HTMLElement}
- */
+
+
 function renderExerciseItem(exercise) {
   const div = document.createElement('div');
   div.className = 'log-item';
   div.dataset.id = exercise.id;
 
-  // Build a concise meta string (e.g. "30 min" or "50 reps" or "30 min · 50 reps")
+  
   const metaParts = [];
   if (exercise.time)  metaParts.push(`${exercise.time} min`);
   if (exercise.reps)  metaParts.push(`${exercise.reps} reps`);
@@ -70,21 +59,19 @@ function renderExerciseItem(exercise) {
   return div;
 }
 
-/**
- * Rebuild the full exercises list + summary cards from State.
- */
+
 function renderAllExercises() {
   const list  = document.getElementById('exercises-list');
   const empty = document.getElementById('exercises-empty');
   const exercises = State.today.exercises;
 
-  // Clear rendered items (keep empty-state placeholder)
+  
   list.querySelectorAll('.log-item, .category-header').forEach(el => el.remove());
 
   if (exercises.length > 0) {
     empty.style.display = 'none';
 
-    // Group by time of day
+    
     const grouped = {};
     exercises.forEach(ex => {
       const time = ex.timeOfDay || 'Morning';
@@ -119,24 +106,19 @@ function renderAllExercises() {
   updateExerciseSummary(exercises);
 }
 
-/**
- * Update exercise summary cards.
- */
+
 function updateExerciseSummary(exercises) {
   const totalBurned = exercises.reduce((sum, ex) => sum + (ex.burn || 0), 0);
   document.getElementById('ex-burned').textContent = totalBurned;
   document.getElementById('ex-count').textContent  = exercises.length;
 }
 
-// ──── Module Init ────
 
-/**
- * Initialize the Exercise module.
- * Sets up modal interactions, calorie calculations, stress warnings, and XP rewards.
- */
+
+
 export function initExercise() {
   let editingExerciseId = null;
-  // DOM references
+  
   const modal       = document.getElementById('exercise-modal');
   const addBtn      = document.getElementById('add-exercise-btn');
   const cancelBtn   = document.getElementById('exercise-cancel');
@@ -151,7 +133,7 @@ export function initExercise() {
   const customInput = document.getElementById('exercise-custom-name');
   const list        = document.getElementById('exercises-list');
 
-  // ── Mental-health lock overlay ──
+  
   const lockOverlay   = document.getElementById('exercise-lock-overlay');
   const lockMsg       = document.getElementById('exercise-lock-msg');
   const lockPlayBtn   = document.getElementById('exercise-lock-play-btn');
@@ -173,7 +155,7 @@ export function initExercise() {
     } else {
       if (lockOverlay) {
         lockOverlay.classList.add('hidden');
-        // Brief green flash on the exercise tab button to signal unlock
+        
         const exTabBtn = document.querySelector('.tab-btn[data-tab="exercise"]');
         if (exTabBtn) {
           exTabBtn.classList.add('exercise-unlocked-flash');
@@ -183,13 +165,13 @@ export function initExercise() {
     }
   }
 
-  // Apply on page load based on persisted mood
+  
   syncLockOverlay(State.today.mood || 'neutral');
 
-  // Re-evaluate whenever mood changes
+  
   EventBus.on('mood:changed', ({ mood }) => syncLockOverlay(mood));
 
-  // "Go to Play tab" shortcut button inside the lock overlay
+  
   if (lockPlayBtn) {
     lockPlayBtn.addEventListener('click', () => {
       const playTabBtn = document.querySelector('.tab-btn[data-tab="play"]');
@@ -197,7 +179,7 @@ export function initExercise() {
     });
   }
 
-  // ── Show custom name field when Other is selected ──
+  
   actSelect.addEventListener('change', () => {
     if (actSelect.value === 'other') {
       customGroup.classList.remove('hidden');
@@ -207,7 +189,7 @@ export function initExercise() {
     }
   });
 
-  // ── Open modal (Mental-health locking enforced) ──
+  
   addBtn.addEventListener('click', () => {
     if (LOCK_MOODS.has(State.today.mood)) {
       showToast('Workouts are locked right now 🧠 Play a game first — you\'ve got this!', '💙');
@@ -227,13 +209,13 @@ export function initExercise() {
     modal.classList.add('visible');
   });
 
-  // ── Close modal ──
+  
   cancelBtn.addEventListener('click', () => {
     modal.classList.remove('visible');
     warningEl.classList.remove('visible');
   });
 
-  // ── Close on backdrop click ──
+  
   modal.addEventListener('click', (e) => {
     if (e.target === modal) {
       modal.classList.remove('visible');
@@ -241,7 +223,7 @@ export function initExercise() {
     }
   });
 
-  // ── Delegation for Edit / Delete ──
+  
   list.addEventListener('click', (e) => {
     const btn = e.target.closest('.action-btn');
     if (!btn) return;
@@ -261,7 +243,7 @@ export function initExercise() {
     } else if (btn.classList.contains('edit-exercise-btn')) {
       if (LOCK_MOODS.has(State.today.mood)) {
         showToast('Workouts are locked right now 🧠 Play a game first — you\'ve got this!', '💙');
-        return; // Lock editing
+        return; 
       }
 
       const exercise = State.today.exercises.find(ex => ex.id === id);
@@ -286,20 +268,20 @@ export function initExercise() {
     }
   });
 
-  // ── Submit exercise ──
+  
   submitBtn.addEventListener('click', async () => {
     const activity = actSelect.value;
     let displayName = actSelect.options[actSelect.selectedIndex]?.text || 'Exercise';
     const time = parseInt(timeInput.value, 10) || 0;
     const reps = parseInt(repsInput.value, 10) || 0;
 
-    // Validation — must pick an activity
+    
     if (!activity) {
       showToast('Please select an activity.', '⚠️');
       return;
     }
 
-    // Validation — time is mandatory
+    
     if (isNaN(time) || time <= 0) {
       showToast('Please enter a valid exercise duration in minutes.', '⚠️');
       return;
@@ -315,7 +297,7 @@ export function initExercise() {
       }
       displayName = `✏️ ${customName}`;
 
-      // Disable button and show loading state
+      
       submitBtn.disabled = true;
       submitBtn.textContent = 'Analyzing burn rate...';
 
@@ -330,7 +312,7 @@ Estimate for ${customName} done by ${weight}kg person.<|eot_id|><|start_header_i
 
 `;
         const result = await generateResponse(prompt, 50);
-        let calsPerMinute = 7; // moderate activity fallback
+        let calsPerMinute = 7; 
         if (result.success) {
           const match = result.text.match(/\d+/);
           if (match) {
@@ -365,7 +347,7 @@ Estimate for ${customName} done by ${weight}kg person.<|eot_id|><|start_header_i
       editingExerciseId = null;
       showToast('Exercise updated!', '✅');
     } else {
-      // Build exercise object
+      
       const exercise = {
         id: Date.now(),
         name: displayName,
@@ -381,17 +363,17 @@ Estimate for ${customName} done by ${weight}kg person.<|eot_id|><|start_header_i
       EventBus.emit('exercise:added', { exercise });
       EventBus.emit('xp:gained', { amount: 20, reason: 'Logged an exercise' });
 
-      // User feedback
+      
       showToast(`${displayName} logged — ${burn} kcal burned! 🔥`, '🏃');
     }
 
-    // Persist to state
+    
     State.save();
 
-    // Re-render
+    
     renderAllExercises();
 
-    // Clear inputs and close modal
+    
     actSelect.value  = '';
     customInput.value = '';
     customGroup.classList.add('hidden');
@@ -402,7 +384,7 @@ Estimate for ${customName} done by ${weight}kg person.<|eot_id|><|start_header_i
     warningEl.classList.remove('visible');
   });
 
-  // ── Restore persisted exercises on load ──
+  
   renderAllExercises();
 
   console.log('🏃 Exercise module initialized');

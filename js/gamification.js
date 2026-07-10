@@ -1,10 +1,8 @@
-/* ============================================
-   FitBuddy — Gamification: XP, Levels & Challenges
-   ============================================ */
+
 
 import { State, EventBus, showToast } from './app.js';
 
-// ──── Level Configuration ────
+
 const LEVEL_TITLES = {
   1: 'Beginner', 2: 'Rookie', 3: 'Warrior', 4: 'Athlete',
   5: 'Champion', 6: 'Hero', 7: 'Legend', 8: 'Mythic'
@@ -16,7 +14,7 @@ const LEVEL_ICONS = {
 const DEFAULT_TITLE = 'Transcendent';
 const DEFAULT_ICON  = '💫';
 
-// ──── Level Math ────
+
 
 /** Calculate level from total XP: level = floor(sqrt(xp / 100)) + 1 */
 function calcLevel(totalXP) {
@@ -38,7 +36,7 @@ function iconForLevel(level) {
   return LEVEL_ICONS[level] || DEFAULT_ICON;
 }
 
-// ──── UI Update Helpers ────
+
 
 /** Refresh the XP bar, level badge, icon and title */
 function updateLevelUI() {
@@ -46,14 +44,14 @@ function updateLevelUI() {
   const level    = xp.level;
   const total    = xp.total;
 
-  // XP boundaries for progress bar within current level
-  const xpFloor  = xpForLevel(level - 1); // XP at which this level was reached
-  const xpCeil   = xpForLevel(level);     // XP needed for NEXT level
+  
+  const xpFloor  = xpForLevel(level - 1); 
+  const xpCeil   = xpForLevel(level);     
   const progress = xpCeil > xpFloor
     ? ((total - xpFloor) / (xpCeil - xpFloor)) * 100
     : 100;
 
-  // Badge & text
+  
   const iconEl  = document.getElementById('level-icon');
   const titleEl = document.getElementById('level-title');
   const fillEl  = document.getElementById('xp-fill');
@@ -94,12 +92,9 @@ function renderChallenges() {
   `).join('');
 }
 
-// ──── Core XP Logic ────
 
-/**
- * Handle an 'xp:gained' event.
- * @param {{ amount: number, reason?: string }} data
- */
+
+
 function handleXPGain({ amount, reason }) {
   if (!amount || amount <= 0) return;
 
@@ -108,23 +103,23 @@ function handleXPGain({ amount, reason }) {
   const newLevel = calcLevel(newTotal);
   const newTitle = titleForLevel(newLevel);
 
-  // Persist XP state
+  
   State.set('xp.total', newTotal);
   State.set('xp.level', newLevel);
   State.set('xp.title', newTitle);
 
-  // Track daily XP earned
+  
   State.set('today.xpEarned', (State.today.xpEarned || 0) + amount);
 
-  // Update UI
+  
   updateLevelUI();
 
-  // Level-up celebration
+  
   if (newLevel > oldLevel) {
     showToast(`Level Up! You are now a ${newTitle}!`, '🎉', 3500);
     EventBus.emit('level:up', { level: newLevel, title: newTitle });
 
-    // Animate the level badge
+    
     const badge = document.getElementById('level-badge');
     if (badge) {
       badge.classList.add('level-up');
@@ -133,12 +128,9 @@ function handleXPGain({ amount, reason }) {
   }
 }
 
-// ──── Challenge Completion ────
 
-/**
- * Toggle a challenge's completed state by its ID.
- * Awards XP when completing, removes XP when uncompleting.
- */
+
+
 function toggleChallenge(id) {
   const challenges = State.today.challenges || [];
   const index = challenges.findIndex(c => c.id === id);
@@ -152,7 +144,7 @@ function toggleChallenge(id) {
     showToast(`Challenge completed! +${challenge.xp} XP`, '🏅');
     EventBus.emit('challenge:completed', { id });
 
-    // If it's a temporary challenge (custom or AI-generated, not default c1/c2/c3)
+    
     if (!id.toString().startsWith('c')) {
       challenges.splice(index, 1);
     }
@@ -161,10 +153,7 @@ function toggleChallenge(id) {
   renderChallenges();
 }
 
-/**
- * Auto-complete a challenge matching a keyword (partial text match)
- * if it hasn't already been completed.
- */
+
 function autoCompleteChallenge(keyword) {
   const challenges = State.today.challenges || [];
   const index = challenges.findIndex(
@@ -177,7 +166,7 @@ function autoCompleteChallenge(keyword) {
     showToast(`Challenge completed! +${match.xp} XP`, '🏅');
     EventBus.emit('challenge:completed', { id: match.id });
 
-    // Remove if temporary
+    
     if (!match.id.toString().startsWith('c')) {
       challenges.splice(index, 1);
     }
@@ -186,7 +175,7 @@ function autoCompleteChallenge(keyword) {
   }
 }
 
-// ──── Auto-Check Listeners ────
+
 
 /** Water challenge: complete when user reaches 8 glasses */
 function onWaterChanged({ count }) {
@@ -215,7 +204,7 @@ function onExerciseAdded({ exercise }) {
     autoCompleteChallenge('exercise');
     return;
   }
-  // Also check total exercise time across the day
+  
   const totalMinutes = State.today.exercises.reduce((s, e) => s + (e.time || 0), 0);
   if (totalMinutes >= 10) {
     autoCompleteChallenge('exercise');
@@ -286,13 +275,13 @@ function deleteChallenge(id) {
   showToast('Task deleted.', '🗑️');
 }
 
-// ──── Click Delegation for Challenge Cards ────
+
 
 function initChallengeClicks() {
   const container = document.getElementById('challenges-list');
   if (!container) return;
 
-  // Close all dropdowns when clicking anywhere in the document
+  
   document.addEventListener('click', () => {
     document.querySelectorAll('.task-dropdown.visible').forEach(d => d.classList.remove('visible'));
   });
@@ -301,7 +290,7 @@ function initChallengeClicks() {
     const kebabBtn = e.target.closest('.task-kebab-btn');
     if (kebabBtn) {
       e.stopPropagation();
-      // close others
+      
       document.querySelectorAll('.task-dropdown.visible').forEach(d => {
         if (d !== kebabBtn.nextElementSibling) d.classList.remove('visible');
       });
@@ -345,18 +334,18 @@ function initChallengeClicks() {
   });
 }
 
-// ──── Module Init ────
+
 
 export function initGamification() {
-  // Restore UI from persisted state
+  
   updateLevelUI();
   renderChallenges();
 
-  // ── Custom Challenge Addition (Empty State fallback) ──
+  
   const emptyStateAddBtn = document.getElementById('add-custom-challenge-btn');
-  if (emptyStateAddBtn) emptyStateAddBtn.remove(); // We handled this in HTML by removing the box
+  if (emptyStateAddBtn) emptyStateAddBtn.remove(); 
 
-  // ── Task Modal Events ──
+  
   const modal = document.getElementById('task-modal');
   const cancelBtn = document.getElementById('task-cancel');
   const submitBtn = document.getElementById('task-submit');
@@ -382,7 +371,7 @@ export function initGamification() {
     const challenges = State.today.challenges || [];
 
     if (editingTaskId) {
-      // Edit existing
+      
       const challenge = challenges.find(c => c.id === editingTaskId);
       if (challenge) {
         challenge.text = text;
@@ -390,7 +379,7 @@ export function initGamification() {
         showToast('Task updated!', '📝');
       }
     } else {
-      // Create new task
+      
       const newChallenge = {
         id: 'cust_' + Date.now(),
         text,
@@ -399,7 +388,7 @@ export function initGamification() {
       };
 
       if (insertAfterTaskId) {
-        // Insert after the specified card ID
+        
         const idx = challenges.findIndex(c => c.id === insertAfterTaskId);
         if (idx !== -1) {
           challenges.splice(idx + 1, 0, newChallenge);
@@ -433,18 +422,18 @@ export function initGamification() {
     });
   }
 
-  // Set up click handlers for challenges
+  
   initChallengeClicks();
 
-  // Subscribe to XP events
+  
   EventBus.on('xp:gained', handleXPGain);
 
-  // Subscribe to auto-check triggers
+  
   EventBus.on('water:changed', onWaterChanged);
   EventBus.on('meal:added', onMealAdded);
   EventBus.on('exercise:added', onExerciseAdded);
 
-  // Subscribe to AI-generated challenge additions
+  
   EventBus.on('challenge:added', onChallengeAdded);
 
   console.log('🏅 Gamification module initialized');
