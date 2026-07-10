@@ -876,7 +876,10 @@ html, body {
 /* ──── Exercise Tab: Mental-health Lock Overlay ──── */
 .exercise-lock-overlay {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 20;
   background: rgba(0, 0, 0, 0.82);
   backdrop-filter: blur(8px);
@@ -1064,7 +1067,10 @@ html, body {
 #game-overlay {
   display: none;
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.95);
   z-index: 1000;
   flex-direction: column;
@@ -1237,7 +1243,10 @@ html, body {
 .modal-overlay {
   display: none;
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: var(--blur-heavy);
   -webkit-backdrop-filter: var(--blur-heavy);
@@ -1692,7 +1701,10 @@ html, body {
 /* ------- Initialize Lab Landing Page ------- */
 .lab-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 10000;
   background: var(--bg);
   display: flex;
