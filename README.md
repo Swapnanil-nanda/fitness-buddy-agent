@@ -6,8 +6,11 @@ FitBuddy is a gamified, fully responsive AI-powered fitness and nutrition assist
 
 ## 📖 Feature Architecture Deep-Dive
 
-### 1. Custom Onboarding Wizard & Biometric Calculator
-The onboarding modal is the entry point for new profiles. As the user enters details, the frontend performs real-time calculations without server roundtrips.
+### 1. Multi-Stage Auth & Onboarding Wizard
+The onboarding modal is the entry point for users, structured as a clean three-stage wizard:
+1.  **Sign In Stage:** Accepts Username/Email and Password, with Google Sign-in support.
+2.  **Sign Up Stage:** Standard credentials registration (Email, Username, Password) or signup with Google.
+3.  **Biometrics Setup Stage:** When standard users register or new Google users sign up for the first time, they are redirected to specify Gender, Weight, Height, Age, Preferred Cuisine, and Diet Type.
 *   **BMI (Body Mass Index):** Calculated using standard metrics:
     $$\text{BMI} = \frac{\text{Weight (kg)}}{\left(\frac{\text{Height (cm)}}{100}\right)^2}$$
 *   **TDEE (Total Daily Energy Expenditure):** Calculated using the **Mifflin-St Jeor equation**:
@@ -25,7 +28,33 @@ The onboarding modal is the entry point for new profiles. As the user enters det
 
 ---
 
-### 2. Intelligent AI Coaching System (`watsonx.ai`)
+### 2. Google Sign-In & Callback Stubbing
+Google Identity Services (GSI) authentication is integrated directly into the wizard:
+*   **Initialization Race Mitigation:** To avoid GSI SDK loading race conditions before dynamic module loads, a script stub in the HTML `<head>` caches the Google authentication response:
+    ```javascript
+    window.handleCredentialResponse = function(response) {
+      if (window.__actualHandleCredentialResponse) {
+        window.__actualHandleCredentialResponse(response);
+      } else {
+        window.__pendingGoogleResponse = response;
+      }
+    };
+    ```
+    Once the onboarding module completes importing, it immediately flushes `__pendingGoogleResponse` and resolves the session.
+*   **Account Auto-Linking:** The backend `/api/google-login` verifies the token. If a standard account already exists with the same email, it automatically links the Google credentials to the existing profile.
+*   **New Profile Defaults:** For new Google profiles, the UI pre-populates default biometrics and triggers calculations instantly via a fake `'input'` event.
+
+---
+
+### 3. Password Reset & SMTP Code Flow
+Users can securely recover their passwords using a 6-digit verification code system:
+*   **Secure SMTP Transport:** If SMTP environment variables are configured, Nodemailer sends a 6-digit verification code to the registered email address.
+*   **Dev Mode Fallback:** If SMTP credentials are not set up on the host, the server logs the generated verification code to the console and includes it in a `devMode` JSON response for easy local testing.
+*   **Expiration Guard:** Verification codes are stored in Redis under `reset:{username}` with a strict 10-minute expiration (`EX 600`).
+
+---
+
+### 4. Intelligent AI Coaching System (`watsonx.ai`)
 Powered by the `ibm/granite-3-8b-instruct` model, the AI engine acts as a humanized coach. Prompt compilers construct rich context payloads dynamically:
 *   **Craving Detection:** When users mention high-calorie junk foods, the prompt injects strict bounds to output a healthy alternative matching the user's cuisine selection.
 *   **Recipe Mode:** If ingredients are listed, the AI wraps a simplified recipe inside a JSON structure:
@@ -38,7 +67,7 @@ Powered by the `ibm/granite-3-8b-instruct` model, the AI engine acts as a humani
 
 ---
 
-### 3. Gamification Engine
+### 5. Gamification Engine
 *   **XP Rewards:** Users gain Experience Points (XP) for logging biometric details and activities:
     *   Log a meal: $+50 \text{ XP}$
     *   Log exercises: $+100 \text{ XP}$
@@ -47,26 +76,20 @@ Powered by the `ibm/granite-3-8b-instruct` model, the AI engine acts as a humani
 
 ---
 
-### 4. Interactive Tracking Dashboards
-*   **Meal Tracker:** Allows categorizing entries into Breakfast, Lunch, Dinner, or Snacks. Utilizes nutrition guidelines to track daily remaining macros.
-*   **Exercise Tracker:** Logs sets, reps, duration, and dynamically calculates calories burned.
-*   **Water Tracker:** Standard 8-glass logger with real-time visual progress bars.
-
----
-
 ## 🗄️ Database & State Data Models
 
 ### 1. Redis Database User Schema (`user:{userId}`)
 Each user is stored as a serialized JSON object inside Vercel KV under a unique key prefix:
-
 ```json
 {
   "hash": "8b5f3a09c2a61...83d09a",
   "salt": "a4d38c92b101ff6c",
+  "googleId": "10482930219283749",
   "state": {
     "user": {
       "userId": "usr_7e4f9b8c2d103a5e",
       "username": "AlexFit",
+      "email": "alex@example.com",
       "weight": 78,
       "height": 182,
       "age": 28,
@@ -74,59 +97,21 @@ Each user is stored as a serialized JSON object inside Vercel KV under a unique 
       "bmi": 23.5,
       "goal": "loss",
       "tdee": 2450,
-      "macros": {
-        "protein": 146,
-        "carbs": 195,
-        "fat": 65
-      },
+      "macros": { "protein": 146, "carbs": 195, "fat": 65 },
       "cuisine": "mediterranean",
       "diet": "vegetarian"
     },
     "onboarded": true,
     "today": {
       "date": "2026-07-10",
-      "meals": [
-        {
-          "id": "meal_172089201",
-          "name": "Greek Salad with Tofu",
-          "calories": 380,
-          "protein": 18,
-          "carbs": 12,
-          "fat": 28
-        }
-      ],
-      "exercises": [
-        {
-          "name": "Squats",
-          "sets": 3,
-          "reps": 12,
-          "duration": 15,
-          "caloriesBurned": 120
-        }
-      ],
-      "water": 4,
+      "meals": [],
+      "exercises": [],
+      "water": 0,
       "sleep": 8,
       "mood": "neutral"
     },
-    "xp": {
-      "total": 350,
-      "level": 2,
-      "title": "Fit Novice"
-    },
-    "settings": {
-      "mode": "proxy",
-      "waterTarget": 8
-    },
-    "chatHistory": [
-      {
-        "role": "user",
-        "content": "I'm craving sweet chocolate."
-      },
-      {
-        "role": "assistant",
-        "content": "Try having a small bowl of Greek yogurt topped with a teaspoon of unsweetened cocoa powder and dark chocolate chips. It satisfies your sweet tooth for just 150 kcal!"
-      }
-    ]
+    "xp": { "total": 350, "level": 2 },
+    "chatHistory": []
   }
 }
 ```
@@ -137,31 +122,24 @@ Each user is stored as a serialized JSON object inside Vercel KV under a unique 
 
 ### 1. Fetch Guard Handshake
 *   **Endpoint:** `GET /api/db-token`
-*   **Header Required:** None
 *   **Response:**
     ```json
-    {
-      "token": "fitbuddy-secret-token-2026-xK9mPqL4"
-    }
+    { "token": "fitbuddy-secret-token-..." }
     ```
 
 ### 2. Fetch User Profile
-*   **Endpoint:** `GET /api/user-data?username=AlexFit`
-*   **Headers Required:**
+*   **Endpoint:** `GET /api/user-data?username=AlexFit` (Accepts username or email)
+*   **Headers:**
     *   `X-DB-Token`: `[DB_TOKEN_VALUE]`
     *   `X-User-Password`: `[PLAINTEXT_USER_PASSWORD]`
-*   **Response (User Exists):**
+*   **Response:**
     ```json
-    {
-      "success": true,
-      "exists": true,
-      "data": { ...stateObject... }
-    }
+    { "success": true, "exists": true, "data": { ...stateObject... } }
     ```
 
 ### 3. Update / Register User Profile
 *   **Endpoint:** `POST /api/user-data`
-*   **Headers Required:**
+*   **Headers:**
     *   `X-DB-Token`: `[DB_TOKEN_VALUE]`
 *   **Payload:**
     ```json
@@ -172,39 +150,47 @@ Each user is stored as a serialized JSON object inside Vercel KV under a unique 
       "state": { ...stateObject... }
     }
     ```
-*   **Response:**
-    ```json
-    {
-      "success": true,
-      "exists": true,
-      "state": { ...updatedStateObject... }
-    }
-    ```
 
-### 4. Chat Proxy
-*   **Endpoint:** `POST /api/chat`
-*   **Headers Required:** None
+### 4. Google Authentication
+*   **Endpoint:** `POST /api/google-login`
 *   **Payload:**
     ```json
     {
-      "message": "Give me a high protein breakfast idea",
-      "history": [
-        { "role": "user", "content": "Hello" },
-        { "role": "assistant", "content": "Hi there! How can I help you today?" }
-      ],
-      "context": {
-        "dietLabel": "Vegetarian",
-        "cuisineLabel": "Indian",
-        "consumed": 450,
-        "tdee": 2000
-      },
-      "max_tokens": 300
+      "googleId": "10482930219283749",
+      "email": "alex@example.com",
+      "name": "Alex Fit"
     }
     ```
 *   **Response:**
     ```json
+    { "success": true, "state": { ...stateObject... } }
+    ```
+
+### 5. Password Reset Request
+*   **Endpoint:** `POST /api/reset-password?action=send`
+*   **Payload:**
+    ```json
     {
-      "generated_text": "A great vegetarian Indian breakfast option is a Paneer Bhurji with whole wheat roti. It packs 25g of protein and is very satisfying!",
-      "token_count": 48
+      "username": "AlexFit",
+      "email": "alex@example.com"
     }
+    ```
+*   **Response:**
+    ```json
+    { "success": true, "devMode": false }
+    ```
+
+### 6. Password Reset Verification
+*   **Endpoint:** `POST /api/reset-password?action=verify`
+*   **Payload:**
+    ```json
+    {
+      "username": "AlexFit",
+      "code": "123456",
+      "newPassword": "myNewPassword789"
+    }
+    ```
+*   **Response:**
+    ```json
+    { "success": true }
     ```
