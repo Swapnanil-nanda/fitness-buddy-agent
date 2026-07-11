@@ -64,6 +64,29 @@ window.__actualHandleCredentialResponse = async (response) => {
       document.getElementById('shared-google-btn-section').style.display = 'none';
       document.getElementById('signin-footer-link').style.display = 'none';
       document.getElementById('signup-footer-link').style.display = 'none';
+
+      // Pre-populate biometrics fields with defaults from returnedState
+      const weightInput = document.getElementById('onboard-weight');
+      const heightInput = document.getElementById('onboard-height');
+      const ageInput = document.getElementById('onboard-age');
+      const genderSelect = document.getElementById('onboard-gender');
+      const cuisineSelect = document.getElementById('onboard-cuisine');
+      const dietSelect = document.getElementById('onboard-diet');
+      
+      const user = returnedState.user;
+      if (user) {
+        if (weightInput) weightInput.value = user.weight || '';
+        if (heightInput) heightInput.value = user.height || '';
+        if (ageInput) ageInput.value = user.age || '';
+        if (genderSelect) genderSelect.value = user.gender || 'male';
+        if (cuisineSelect) cuisineSelect.value = user.cuisine || 'any';
+        if (dietSelect) dietSelect.value = user.diet || 'no-restriction';
+      }
+      
+      // Trigger the input event to calculate BMI, Goal, and Calories instantly
+      if (weightInput) {
+        weightInput.dispatchEvent(new Event('input'));
+      }
       
       showToast('Login successful! Please complete your biometrics setup.', '📊');
     }
