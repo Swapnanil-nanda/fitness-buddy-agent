@@ -288,6 +288,13 @@
       <div class="form-group">
         <label class="form-label" for="onboard-password">Password</label>
         <input class="form-input" type="password" id="onboard-password" placeholder="••••••••">
+        <div style="text-align: right; margin-top: 4px;">
+          <a href="#" id="forgot-password-link" style="color: var(--primary); font-size: 12px; text-decoration: none;">Forgot Password?</a>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="onboard-email">Email Address</label>
+        <input class="form-input" type="email" id="onboard-email" placeholder="e.g. alex@example.com">
       </div>
       <div class="form-group">
         <label class="form-label" for="onboard-gender">Gender</label>
@@ -356,6 +363,46 @@
         </select>
       </div>
       <button class="btn btn-primary mt-16" id="onboard-submit" disabled>Get Started →</button>
+    </div>
+
+    <div id="forgot-password-section" style="display: none;">
+      <div class="text-center" style="margin-bottom: 20px">
+        <div style="font-size: 48px; margin-bottom: 8px">🔑</div>
+        <div class="modal-title">Reset Password</div>
+        <div class="modal-subtitle">Enter your username and email to receive a 6-digit recovery code.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="reset-username">Username</label>
+        <input class="form-input" type="text" id="reset-username" placeholder="e.g. alex123">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="reset-email">Email Address</label>
+        <input class="form-input" type="email" id="reset-email" placeholder="e.g. alex@example.com">
+      </div>
+      <button class="btn btn-primary mt-16" id="reset-send-code">Send Verification Code</button>
+      <div style="text-align: center; margin-top: 16px;">
+        <a href="#" id="back-to-login" style="color: var(--primary); font-size: 14px; text-decoration: none;">← Back to Sign In / Sign Up</a>
+      </div>
+    </div>
+
+    <div id="verify-code-section" style="display: none;">
+      <div class="text-center" style="margin-bottom: 20px">
+        <div style="font-size: 48px; margin-bottom: 8px">✉️</div>
+        <div class="modal-title">Verify Recovery Code</div>
+        <div class="modal-subtitle">We sent a 6-digit recovery code to your email. Enter it below with your new password.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="verify-code-input">6-Digit Code</label>
+        <input class="form-input" type="text" id="verify-code-input" placeholder="123456" maxlength="6">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="verify-new-password">New Password</label>
+        <input class="form-input" type="password" id="verify-new-password" placeholder="••••••••">
+      </div>
+      <button class="btn btn-primary mt-16" id="reset-submit-new-password">Reset Password</button>
+      <div style="text-align: center; margin-top: 16px;">
+        <a href="#" id="back-to-reset" style="color: var(--primary); font-size: 14px; text-decoration: none;">← Go Back</a>
+      </div>
     </div>
   </div>
 </div>
