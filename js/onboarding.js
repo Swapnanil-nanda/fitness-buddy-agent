@@ -369,7 +369,7 @@ export function initOnboarding() {
       const response = await fetch(endpoint, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
+          ...dbHeaders(),
           'X-User-Password': password
         }
       });
@@ -654,4 +654,31 @@ export function initOnboarding() {
       }
     });
   }
+
+  // Password Visibility Toggle Listeners
+  const toggleButtons = document.querySelectorAll('.password-toggle-btn');
+  toggleButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      
+      const container = btn.closest('.password-input-container');
+      if (!container) return;
+      
+      const input = container.querySelector('input');
+      const eyeOpenIcon = btn.querySelector('.eye-open');
+      const eyeClosedIcon = btn.querySelector('.eye-closed');
+      
+      if (input && eyeOpenIcon && eyeClosedIcon) {
+        if (input.type === 'password') {
+          input.type = 'text';
+          eyeOpenIcon.style.display = 'none';
+          eyeClosedIcon.style.display = 'block';
+        } else {
+          input.type = 'password';
+          eyeOpenIcon.style.display = 'block';
+          eyeClosedIcon.style.display = 'none';
+        }
+      }
+    });
+  });
 }

@@ -1917,3 +1917,29 @@ html, body {
     display: inline-block;
   }
 }
+
+.password-input-container {
+  position: relative;
+  width: 100%;
+}
+.password-toggle-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+.password-toggle-btn:hover {
+  color: var(--primary);
+}
+.password-input-container .form-input {
+  padding-right: 40px;
+}
