@@ -115,10 +115,40 @@ async function updateUser(userId, username, password, newPassword, state) {
   return state;
 }
 
+async function findByGoogleId(googleId) {
+  const client = getClient();
+  const keys = await client.keys('user:*');
+  for (const key of keys) {
+    const raw = await client.get(key);
+    if (!raw) continue;
+    const record = JSON.parse(raw);
+    if (record.googleId === googleId) {
+      return record;
+    }
+  }
+  return null;
+}
+
+async function findByEmail(email) {
+  const client = getClient();
+  const keys = await client.keys('user:*');
+  for (const key of keys) {
+    const raw = await client.get(key);
+    if (!raw) continue;
+    const record = JSON.parse(raw);
+    if (record.state && record.state.user && record.state.user.email && record.state.user.email.toLowerCase() === email.toLowerCase()) {
+      return record;
+    }
+  }
+  return null;
+}
+
 module.exports = {
   getClient,
   findByUsername,
   findByUserId,
   onboardUser,
   updateUser,
+  findByGoogleId,
+  findByEmail,
 };

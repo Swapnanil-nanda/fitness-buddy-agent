@@ -8,6 +8,7 @@
   <title>FitBuddy — AI Fitness Coach</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏋️</text></svg>">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
   
@@ -363,6 +364,23 @@
         </select>
       </div>
       <button class="btn btn-primary mt-16" id="onboard-submit" disabled>Get Started →</button>
+
+      <div style="display: flex; align-items: center; margin: 16px 0;">
+        <div style="flex: 1; height: 1px; background-color: rgba(255,255,255,0.15);"></div>
+        <div style="margin: 0 10px; color: rgba(255,255,255,0.5); font-size: 11px; font-weight: 600; letter-spacing: 0.5px;">OR</div>
+        <div style="flex: 1; height: 1px; background-color: rgba(255,255,255,0.15);"></div>
+      </div>
+
+      <div style="display: flex; justify-content: center; margin-top: 8px;">
+        <div id="g_id_onload"
+             data-client_id="901210450483-5j4kiaqr2f9huiaitq4fj5mgirq8tjpq.apps.googleusercontent.com"
+             data-context="signin"
+             data-ux_mode="popup"
+             data-callback="handleCredentialResponse"
+             data-auto_prompt="false">
+        </div>
+        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_blue" data-text="continue_with" data-size="large" data-logo_alignment="left"></div>
+      </div>
     </div>
 
     <div id="forgot-password-section" style="display: none;">

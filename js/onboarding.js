@@ -18,6 +18,43 @@ const GOAL_ADJUSTMENTS = {
   gain:      300
 };
 
+window.handleCredentialResponse = async (response) => {
+  try {
+    const jwt = response.credential;
+    const payloadBase64 = jwt.split('.')[1];
+    const decodedPayload = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
+
+    const googleId = decodedPayload.sub;
+    const email = decodedPayload.email;
+    const name = decodedPayload.name;
+
+    const { showToast, getApiBaseUrl } = await import('./app.js');
+
+    const apiRes = await fetch(`${getApiBaseUrl()}/api/google-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ googleId, email, name })
+    });
+
+    const data = await apiRes.json();
+    if (!apiRes.ok) {
+      showToast(data.error || 'Google Sign-In failed', '🔒');
+      return;
+    }
+
+    const { reloadState } = await import('./app.js');
+    reloadState(data.state, 'google-auth-session');
+
+    const modal = document.getElementById('onboarding-modal');
+    if (modal) modal.classList.remove('visible');
+    showToast(`Welcome, ${data.state.user.username}!`, '🎉');
+
+  } catch (err) {
+    console.error('Google Sign-In Callback Error:', err);
+    const { showToast } = await import('./app.js');
+    showToast('Google Sign-In failed. Try again.', '⚠️');
+  }
+};
 
 export function initOnboarding() {
   const usernameInput = document.getElementById('onboard-username');
