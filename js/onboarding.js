@@ -56,6 +56,12 @@ window.handleCredentialResponse = async (response) => {
       document.getElementById('auth-signin-section').style.display = 'none';
       document.getElementById('auth-signup-section').style.display = 'none';
       document.getElementById('onboard-biometrics-section').style.display = 'block';
+      
+      // Hide shared Google elements during biometrics phase
+      document.getElementById('shared-google-btn-section').style.display = 'none';
+      document.getElementById('signin-footer-link').style.display = 'none';
+      document.getElementById('signup-footer-link').style.display = 'none';
+      
       showToast('Login successful! Please complete your biometrics setup.', '📊');
     }
 
@@ -77,6 +83,10 @@ export function initOnboarding() {
   const onboardBiometricsSection = document.getElementById('onboard-biometrics-section');
   const forgotPasswordSection = document.getElementById('forgot-password-section');
   const verifyCodeSection = document.getElementById('verify-code-section');
+
+  const sharedGoogleBtnSection = document.getElementById('shared-google-btn-section');
+  const signinFooterLink = document.getElementById('signin-footer-link');
+  const signupFooterLink = document.getElementById('signup-footer-link');
 
   const signinUsernameInput = document.getElementById('signin-username');
   const signinPasswordInput = document.getElementById('signin-password');
@@ -116,6 +126,9 @@ export function initOnboarding() {
       e.preventDefault();
       authSigninSection.style.display = 'none';
       authSignupSection.style.display = 'block';
+      signinFooterLink.style.display = 'none';
+      signupFooterLink.style.display = 'block';
+      sharedGoogleBtnSection.style.display = 'block';
     });
   }
 
@@ -124,6 +137,9 @@ export function initOnboarding() {
       e.preventDefault();
       authSignupSection.style.display = 'none';
       authSigninSection.style.display = 'block';
+      signupFooterLink.style.display = 'none';
+      signinFooterLink.style.display = 'block';
+      sharedGoogleBtnSection.style.display = 'block';
     });
   }
 
@@ -132,6 +148,9 @@ export function initOnboarding() {
       e.preventDefault();
       authSigninSection.style.display = 'none';
       forgotPasswordSection.style.display = 'block';
+      sharedGoogleBtnSection.style.display = 'none';
+      signinFooterLink.style.display = 'none';
+      signupFooterLink.style.display = 'none';
     });
   }
 
@@ -140,6 +159,9 @@ export function initOnboarding() {
       e.preventDefault();
       forgotPasswordSection.style.display = 'none';
       authSigninSection.style.display = 'block';
+      sharedGoogleBtnSection.style.display = 'block';
+      signinFooterLink.style.display = 'block';
+      signupFooterLink.style.display = 'none';
     });
   }
 
@@ -148,6 +170,9 @@ export function initOnboarding() {
       e.preventDefault();
       verifyCodeSection.style.display = 'none';
       forgotPasswordSection.style.display = 'block';
+      sharedGoogleBtnSection.style.display = 'none';
+      signinFooterLink.style.display = 'none';
+      signupFooterLink.style.display = 'none';
     });
   }
 
@@ -359,6 +384,11 @@ export function initOnboarding() {
 
     authSignupSection.style.display = 'none';
     onboardBiometricsSection.style.display = 'block';
+
+    // Hide shared Google elements during biometrics phase
+    sharedGoogleBtnSection.style.display = 'none';
+    signinFooterLink.style.display = 'none';
+    signupFooterLink.style.display = 'none';
   });
 
   onboardSubmitBtn.addEventListener('click', async () => {

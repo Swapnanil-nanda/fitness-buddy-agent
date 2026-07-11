@@ -5,6 +5,7 @@
     { "source": "/api/chat", "destination": "/api/chat" },
     { "source": "/api/reset-password", "destination": "/api/reset-password" },
     { "source": "/api/google-login", "destination": "/api/google-login" },
+    { "source": "/api/clear-db-secure", "destination": "/api/clear-db-secure" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
