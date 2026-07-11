@@ -300,20 +300,6 @@
         </div>
       </div>
       <button class="btn btn-primary mt-16" id="signin-submit">Sign In →</button>
-
-      <div style="display: flex; align-items: center; margin: 16px 0;">
-        <div style="flex: 1; height: 1px; background-color: rgba(255,255,255,0.15);"></div>
-        <div style="margin: 0 10px; color: rgba(255,255,255,0.5); font-size: 11px; font-weight: 600; letter-spacing: 0.5px;">OR</div>
-        <div style="flex: 1; height: 1px; background-color: rgba(255,255,255,0.15);"></div>
-      </div>
-
-      <div style="display: flex; justify-content: center; margin-top: 8px;">
-        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_blue" data-text="continue_with" data-size="large" data-logo_alignment="left"></div>
-      </div>
-
-      <div style="text-align: center; margin-top: 20px; font-size: 13px; color: rgba(255,255,255,0.6);">
-        New user? <a href="#" id="go-to-signup" style="color: var(--primary); text-decoration: none; font-weight: 600;">Sign Up</a>
-      </div>
     </div>
 
     <!-- 2. SIGN UP VIEW -->
@@ -336,20 +322,26 @@
         <input class="form-input" type="password" id="onboard-password" placeholder="••••••••">
       </div>
       <button class="btn btn-primary mt-16" id="signup-next">Next: Biometrics →</button>
+    </div>
 
+    <!-- SHARED GOOGLE SIGN-IN CONTAINER -->
+    <div id="shared-google-btn-section">
       <div style="display: flex; align-items: center; margin: 16px 0;">
         <div style="flex: 1; height: 1px; background-color: rgba(255,255,255,0.15);"></div>
         <div style="margin: 0 10px; color: rgba(255,255,255,0.5); font-size: 11px; font-weight: 600; letter-spacing: 0.5px;">OR</div>
         <div style="flex: 1; height: 1px; background-color: rgba(255,255,255,0.15);"></div>
       </div>
-
       <div style="display: flex; justify-content: center; margin-top: 8px;">
-        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_blue" data-text="signup_with" data-size="large" data-logo_alignment="left"></div>
+        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_blue" data-text="continue_with" data-size="large" data-logo_alignment="left"></div>
       </div>
+    </div>
 
-      <div style="text-align: center; margin-top: 20px; font-size: 13px; color: rgba(255,255,255,0.6);">
-        Already have an account? <a href="#" id="go-to-signin" style="color: var(--primary); text-decoration: none; font-weight: 600;">Sign In</a>
-      </div>
+    <!-- FOOTER LINKS -->
+    <div id="signin-footer-link" style="text-align: center; margin-top: 20px; font-size: 13px; color: rgba(255,255,255,0.6);">
+      New user? <a href="#" id="go-to-signup" style="color: var(--primary); text-decoration: none; font-weight: 600;">Sign Up</a>
+    </div>
+    <div id="signup-footer-link" style="text-align: center; margin-top: 20px; font-size: 13px; color: rgba(255,255,255,0.6); display: none;">
+      Already have an account? <a href="#" id="go-to-signin" style="color: var(--primary); text-decoration: none; font-weight: 600;">Sign In</a>
     </div>
 
     <!-- 3. BIOMETRICS VIEW -->

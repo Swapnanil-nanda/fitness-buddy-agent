@@ -23,7 +23,10 @@ window.handleCredentialResponse = async (response) => {
   try {
     const jwt = response.credential;
     const payloadBase64 = jwt.split('.')[1];
-    const decodedPayload = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
+    const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = base64.length % 4;
+    const padded = pad ? base64 + '='.repeat(4 - pad) : base64;
+    const decodedPayload = JSON.parse(atob(padded));
 
     const googleId = decodedPayload.sub;
     const email = decodedPayload.email;
@@ -67,7 +70,7 @@ window.handleCredentialResponse = async (response) => {
 
   } catch (err) {
     console.error('Google Sign-In Callback Error:', err);
-    showToast('Google Sign-In failed. Try again.', '⚠️');
+    showToast('Google Sign-In failed: ' + (err.message || err), '⚠️');
   }
 };
 
