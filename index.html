@@ -271,16 +271,57 @@
 </div>
 
 
-
-
 <div class="modal-overlay" id="onboarding-modal">
   <div class="modal">
-    
-    <div id="onboard-main-section">
+    <div id="g_id_onload"
+         data-client_id="901210450483-5j4kiaqr2f9huiaitq4fj5mgirq8tjpq.apps.googleusercontent.com"
+         data-context="signin"
+         data-ux_mode="popup"
+         data-callback="handleCredentialResponse"
+         data-auto_prompt="false">
+    </div>
+
+    <!-- 1. SIGN IN VIEW -->
+    <div id="auth-signin-section">
+      <div class="text-center" style="margin-bottom: 20px">
+        <div style="font-size: 48px; margin-bottom: 8px">🔐</div>
+        <div class="modal-title">Sign In to FitBuddy</div>
+        <div class="modal-subtitle">Welcome back! Please enter your details.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="signin-username">Username or Email</label>
+        <input class="form-input" type="text" id="signin-username" placeholder="e.g. alex123 or alex@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="signin-password">Password</label>
+        <input class="form-input" type="password" id="signin-password" placeholder="••••••••">
+        <div style="text-align: right; margin-top: 4px;">
+          <a href="#" id="forgot-password-link" style="color: var(--primary); font-size: 12px; text-decoration: none;">Forgot Password?</a>
+        </div>
+      </div>
+      <button class="btn btn-primary mt-16" id="signin-submit">Sign In →</button>
+
+      <div style="display: flex; align-items: center; margin: 16px 0;">
+        <div style="flex: 1; height: 1px; background-color: rgba(255,255,255,0.15);"></div>
+        <div style="margin: 0 10px; color: rgba(255,255,255,0.5); font-size: 11px; font-weight: 600; letter-spacing: 0.5px;">OR</div>
+        <div style="flex: 1; height: 1px; background-color: rgba(255,255,255,0.15);"></div>
+      </div>
+
+      <div style="display: flex; justify-content: center; margin-top: 8px;">
+        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_blue" data-text="continue_with" data-size="large" data-logo_alignment="left"></div>
+      </div>
+
+      <div style="text-align: center; margin-top: 20px; font-size: 13px; color: rgba(255,255,255,0.6);">
+        New user? <a href="#" id="go-to-signup" style="color: var(--primary); text-decoration: none; font-weight: 600;">Sign Up</a>
+      </div>
+    </div>
+
+    <!-- 2. SIGN UP VIEW -->
+    <div id="auth-signup-section" style="display: none;">
       <div class="text-center" style="margin-bottom: 20px">
         <div style="font-size: 48px; margin-bottom: 8px">🏋️</div>
-        <div class="modal-title">Welcome to FitBuddy</div>
-        <div class="modal-subtitle">Let's personalize your experience in seconds.</div>
+        <div class="modal-title">Create Account</div>
+        <div class="modal-subtitle">Start your fitness journey today.</div>
       </div>
       <div class="form-group">
         <label class="form-label" for="onboard-email">Email Address</label>
@@ -293,9 +334,30 @@
       <div class="form-group">
         <label class="form-label" for="onboard-password">Password</label>
         <input class="form-input" type="password" id="onboard-password" placeholder="••••••••">
-        <div style="text-align: right; margin-top: 4px;">
-          <a href="#" id="forgot-password-link" style="color: var(--primary); font-size: 12px; text-decoration: none;">Forgot Password?</a>
-        </div>
+      </div>
+      <button class="btn btn-primary mt-16" id="signup-next">Next: Biometrics →</button>
+
+      <div style="display: flex; align-items: center; margin: 16px 0;">
+        <div style="flex: 1; height: 1px; background-color: rgba(255,255,255,0.15);"></div>
+        <div style="margin: 0 10px; color: rgba(255,255,255,0.5); font-size: 11px; font-weight: 600; letter-spacing: 0.5px;">OR</div>
+        <div style="flex: 1; height: 1px; background-color: rgba(255,255,255,0.15);"></div>
+      </div>
+
+      <div style="display: flex; justify-content: center; margin-top: 8px;">
+        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_blue" data-text="signup_with" data-size="large" data-logo_alignment="left"></div>
+      </div>
+
+      <div style="text-align: center; margin-top: 20px; font-size: 13px; color: rgba(255,255,255,0.6);">
+        Already have an account? <a href="#" id="go-to-signin" style="color: var(--primary); text-decoration: none; font-weight: 600;">Sign In</a>
+      </div>
+    </div>
+
+    <!-- 3. BIOMETRICS VIEW -->
+    <div id="onboard-biometrics-section" style="display: none;">
+      <div class="text-center" style="margin-bottom: 20px">
+        <div style="font-size: 48px; margin-bottom: 8px">📊</div>
+        <div class="modal-title">Biometric Setup</div>
+        <div class="modal-subtitle">We need a few details to calculate your macros.</div>
       </div>
       <div class="form-group">
         <label class="form-label" for="onboard-gender">Gender</label>
@@ -363,24 +425,7 @@
           <option value="kosher">Kosher</option>
         </select>
       </div>
-      <button class="btn btn-primary mt-16" id="onboard-submit" disabled>Get Started →</button>
-
-      <div style="display: flex; align-items: center; margin: 16px 0;">
-        <div style="flex: 1; height: 1px; background-color: rgba(255,255,255,0.15);"></div>
-        <div style="margin: 0 10px; color: rgba(255,255,255,0.5); font-size: 11px; font-weight: 600; letter-spacing: 0.5px;">OR</div>
-        <div style="flex: 1; height: 1px; background-color: rgba(255,255,255,0.15);"></div>
-      </div>
-
-      <div style="display: flex; justify-content: center; margin-top: 8px;">
-        <div id="g_id_onload"
-             data-client_id="901210450483-5j4kiaqr2f9huiaitq4fj5mgirq8tjpq.apps.googleusercontent.com"
-             data-context="signin"
-             data-ux_mode="popup"
-             data-callback="handleCredentialResponse"
-             data-auto_prompt="false">
-        </div>
-        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_blue" data-text="continue_with" data-size="large" data-logo_alignment="left"></div>
-      </div>
+      <button class="btn btn-primary mt-16" id="onboard-submit" disabled>Complete Profile →</button>
     </div>
 
     <div id="forgot-password-section" style="display: none;">

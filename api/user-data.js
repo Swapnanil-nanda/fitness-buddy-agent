@@ -35,7 +35,10 @@ module.exports = async function handler(req, res) {
       }
 
       const password = req.headers['x-user-password'];
-      const userRecord = await db.findByUsername(username);
+      let userRecord = await db.findByUsername(username);
+      if (!userRecord && username.includes('@')) {
+        userRecord = await db.findByEmail(username);
+      }
 
       if (!userRecord) {
         return res.status(200).json({ success: true, exists: false, data: null });

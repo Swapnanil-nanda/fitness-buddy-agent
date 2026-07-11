@@ -259,9 +259,20 @@ export const State = {
 export function reloadState(newState, password) {
   _state = newState;
   localStorage.setItem('fitbuddy_state', JSON.stringify(_state));
-  if (password) {
+  if (password && password !== 'google-auth-session') {
     localStorage.setItem('fitbuddy_password', password);
   }
+  
+  if (_state.onboarded) {
+    const labPage = document.getElementById('init-lab-page');
+    if (labPage) {
+      labPage.classList.remove('visible');
+      window.setTimeout(() => {
+        labPage.style.display = 'none';
+      }, 600);
+    }
+  }
+
   EventBus.emit('state:changed', { path: '', value: _state });
 }
 

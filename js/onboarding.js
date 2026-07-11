@@ -1,7 +1,4 @@
-
-
 import { State, EventBus, getApiBaseUrl, showToast, dbHeaders } from './app.js';
-
 
 const ACTIVITY_MULTIPLIER = 1.375; 
 const KCAL_PER_G_PROTEIN = 4;
@@ -18,6 +15,10 @@ const GOAL_ADJUSTMENTS = {
   gain:      300
 };
 
+let googleSessionState = null;
+let standardSignupData = null;
+let _computedBiometrics = null;
+
 window.handleCredentialResponse = async (response) => {
   try {
     const jwt = response.credential;
@@ -27,8 +28,6 @@ window.handleCredentialResponse = async (response) => {
     const googleId = decodedPayload.sub;
     const email = decodedPayload.email;
     const name = decodedPayload.name;
-
-    const { showToast, getApiBaseUrl } = await import('./app.js');
 
     const apiRes = await fetch(`${getApiBaseUrl()}/api/google-login`, {
       method: 'POST',
@@ -42,77 +41,168 @@ window.handleCredentialResponse = async (response) => {
       return;
     }
 
-    const { reloadState } = await import('./app.js');
-    reloadState(data.state, 'google-auth-session');
+    const returnedState = data.state;
 
-    const modal = document.getElementById('onboarding-modal');
-    if (modal) modal.classList.remove('visible');
-    showToast(`Welcome, ${data.state.user.username}!`, '🎉');
+    if (returnedState.onboarded) {
+      const { reloadState } = await import('./app.js');
+      reloadState(returnedState, 'google-auth-session');
+      const modal = document.getElementById('onboarding-modal');
+      if (modal) modal.classList.remove('visible');
+      showToast(`Welcome back, ${returnedState.user.username}!`, '🎉');
+    } else {
+      googleSessionState = returnedState;
+      standardSignupData = null;
+      
+      document.getElementById('auth-signin-section').style.display = 'none';
+      document.getElementById('auth-signup-section').style.display = 'none';
+      document.getElementById('onboard-biometrics-section').style.display = 'block';
+      showToast('Login successful! Please complete your biometrics setup.', '📊');
+    }
 
   } catch (err) {
     console.error('Google Sign-In Callback Error:', err);
-    const { showToast } = await import('./app.js');
     showToast('Google Sign-In failed. Try again.', '⚠️');
   }
 };
 
 export function initOnboarding() {
-  const usernameInput = document.getElementById('onboard-username');
-  const passwordInput = document.getElementById('onboard-password');
-  const emailInput    = document.getElementById('onboard-email');
-  const weightInput   = document.getElementById('onboard-weight');
-  const heightInput   = document.getElementById('onboard-height');
-  const ageInput      = document.getElementById('onboard-age');
-  const genderSelect  = document.getElementById('onboard-gender');
-  const submitBtn     = document.getElementById('onboard-submit');
+  const goToSignupBtn = document.getElementById('go-to-signup');
+  const goToSigninBtn = document.getElementById('go-to-signin');
+  const forgotPasswordLink = document.getElementById('forgot-password-link');
+  const backToLoginLink = document.getElementById('back-to-login');
+  const backToResetLink = document.getElementById('back-to-reset');
 
-  const bmiDisplay   = document.getElementById('bmi-display');
-  const bmiValue     = document.getElementById('bmi-value');
+  const authSigninSection = document.getElementById('auth-signin-section');
+  const authSignupSection = document.getElementById('auth-signup-section');
+  const onboardBiometricsSection = document.getElementById('onboard-biometrics-section');
+  const forgotPasswordSection = document.getElementById('forgot-password-section');
+  const verifyCodeSection = document.getElementById('verify-code-section');
+
+  const signinUsernameInput = document.getElementById('signin-username');
+  const signinPasswordInput = document.getElementById('signin-password');
+  const signinSubmitBtn = document.getElementById('signin-submit');
+
+  const onboardEmailInput = document.getElementById('onboard-email');
+  const onboardUsernameInput = document.getElementById('onboard-username');
+  const onboardPasswordInput = document.getElementById('onboard-password');
+  const signupNextBtn = document.getElementById('signup-next');
+
+  const onboardGenderSelect = document.getElementById('onboard-gender');
+  const onboardWeightInput = document.getElementById('onboard-weight');
+  const onboardHeightInput = document.getElementById('onboard-height');
+  const onboardAgeInput = document.getElementById('onboard-age');
+  const onboardCuisineSelect = document.getElementById('onboard-cuisine');
+  const onboardDietSelect = document.getElementById('onboard-diet');
+  const onboardSubmitBtn = document.getElementById('onboard-submit');
+
+  const bmiDisplay = document.getElementById('bmi-display');
+  const bmiValue = document.getElementById('bmi-value');
   const bmiIndicator = document.getElementById('bmi-indicator');
-  const goalDisplay  = document.getElementById('goal-display');
-  const goalValue    = document.getElementById('goal-value');
-  const tdeeDisplay  = document.getElementById('tdee-display');
-  const tdeeValue    = document.getElementById('tdee-value');
-  const modal        = document.getElementById('onboarding-modal');
+  const goalDisplay = document.getElementById('goal-display');
+  const goalValue = document.getElementById('goal-value');
+  const tdeeDisplay = document.getElementById('tdee-display');
+  const tdeeValue = document.getElementById('tdee-value');
+  const modal = document.getElementById('onboarding-modal');
 
-  const inputs = [usernameInput, passwordInput, emailInput, weightInput, heightInput, ageInput, genderSelect];
-  inputs.forEach(el => {
+  const resetUsernameInput = document.getElementById('reset-username');
+  const resetEmailInput = document.getElementById('reset-email');
+  const resetSendCodeBtn = document.getElementById('reset-send-code');
+  const verifyCodeInput = document.getElementById('verify-code-input');
+  const verifyNewPasswordInput = document.getElementById('verify-new-password');
+  const resetSubmitNewPasswordBtn = document.getElementById('reset-submit-new-password');
+
+  if (goToSignupBtn) {
+    goToSignupBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      authSigninSection.style.display = 'none';
+      authSignupSection.style.display = 'block';
+    });
+  }
+
+  if (goToSigninBtn) {
+    goToSigninBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      authSignupSection.style.display = 'none';
+      authSigninSection.style.display = 'block';
+    });
+  }
+
+  if (forgotPasswordLink) {
+    forgotPasswordLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      authSigninSection.style.display = 'none';
+      forgotPasswordSection.style.display = 'block';
+    });
+  }
+
+  if (backToLoginLink) {
+    backToLoginLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      forgotPasswordSection.style.display = 'none';
+      authSigninSection.style.display = 'block';
+    });
+  }
+
+  if (backToResetLink) {
+    backToResetLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      verifyCodeSection.style.display = 'none';
+      forgotPasswordSection.style.display = 'block';
+    });
+  }
+
+  const signinInputs = [signinUsernameInput, signinPasswordInput];
+  signinInputs.forEach(el => {
     if (el) {
-      el.addEventListener('input', recalculate);
-      el.addEventListener('change', recalculate);
-      el.addEventListener('blur', recalculate);
+      el.addEventListener('input', validateSignin);
     }
   });
-  genderSelect.addEventListener('change', recalculate);
 
-  modal.addEventListener('click', recalculate);
-  modal.addEventListener('touchstart', recalculate, { passive: true });
+  const signupInputs = [onboardEmailInput, onboardUsernameInput, onboardPasswordInput];
+  signupInputs.forEach(el => {
+    if (el) {
+      el.addEventListener('input', validateSignup);
+    }
+  });
 
-  function recalculate() {
-    const username = usernameInput.value.trim();
-    const password = passwordInput ? passwordInput.value : '';
-    const email    = emailInput ? emailInput.value.trim() : '';
-    const weight = parseFloat(weightInput.value);
-    const height = parseFloat(heightInput.value);
-    const age    = parseInt(ageInput.value, 10);
-    const gender = genderSelect.value;
+  const biometricInputs = [onboardWeightInput, onboardHeightInput, onboardAgeInput, onboardGenderSelect];
+  biometricInputs.forEach(el => {
+    if (el) {
+      el.addEventListener('input', recalculateBiometrics);
+      el.addEventListener('change', recalculateBiometrics);
+    }
+  });
 
-    const validUsername = username.length >= 2;
-    const validPassword = password.length >= 4;
-    const validEmail    = email.includes('@') && email.length >= 5;
+  function validateSignin() {
+    const user = signinUsernameInput.value.trim();
+    const pass = signinPasswordInput.value.trim();
+    signinSubmitBtn.disabled = !(user.length >= 2 && pass.length >= 4);
+  }
+
+  function validateSignup() {
+    const email = onboardEmailInput.value.trim();
+    const user = onboardUsernameInput.value.trim();
+    const pass = onboardPasswordInput.value.trim();
+
+    const validEmail = email.includes('@') && email.length >= 5;
+    const validUser = user.length >= 2;
+    const validPass = pass.length >= 4;
+
+    signupNextBtn.disabled = !(validEmail && validUser && validPass);
+  }
+
+  function recalculateBiometrics() {
+    const weight = parseFloat(onboardWeightInput.value);
+    const height = parseFloat(onboardHeightInput.value);
+    const age    = parseInt(onboardAgeInput.value, 10);
+    const gender = onboardGenderSelect.value;
+
     const validWeight = weight >= 20 && weight <= 300;
     const validHeight = height >= 100 && height <= 250;
     const validAge    = age >= 10 && age <= 120;
-    const allValid    = validUsername && validPassword && validEmail && validWeight && validHeight && validAge;
+    const allValid    = validWeight && validHeight && validAge;
 
-    submitBtn.disabled = !allValid;
-
-    usernameInput.classList.toggle('invalid-input', username.length > 0 && !validUsername);
-    if (passwordInput) passwordInput.classList.toggle('invalid-input', password.length > 0 && !validPassword);
-    if (emailInput) emailInput.classList.toggle('invalid-input', email.length > 0 && !validEmail);
-    weightInput.classList.toggle('invalid-input', weightInput.value.length > 0 && !validWeight);
-    heightInput.classList.toggle('invalid-input', heightInput.value.length > 0 && !validHeight);
-    ageInput.classList.toggle('invalid-input', ageInput.value.length > 0 && !validAge);
+    onboardSubmitBtn.disabled = !allValid;
 
     let bmiRounded = null;
     let goalKey = null;
@@ -188,7 +278,7 @@ export function initOnboarding() {
     }
 
     if (allValid && bmiRounded && goalKey && adjustedTDEE) {
-      _computed = {
+      _computedBiometrics = {
         bmi: parseFloat(bmiRounded),
         goalKey,
         adjustedTDEE,
@@ -201,36 +291,90 @@ export function initOnboarding() {
         gender
       };
     } else {
-      _computed = null;
+      _computedBiometrics = null;
     }
   }
 
-  let _computed = null;
-  recalculate();
+  signinSubmitBtn.addEventListener('click', async () => {
+    const username = signinUsernameInput.value.trim();
+    const password = signinPasswordInput.value.trim();
 
-  submitBtn.addEventListener('click', async () => {
-    if (!_computed) return;
-
-    const username = usernameInput.value.trim();
-    const password = passwordInput ? passwordInput.value.trim() : '';
-    const email    = emailInput ? emailInput.value.trim() : '';
-
-    if (!username || !password || !email) {
-      showToast('Username, password, and email are required!', '⚠️');
+    if (!username || !password) {
+      showToast('Username and password are required!', '⚠️');
       return;
     }
 
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Syncing...';
+    signinSubmitBtn.disabled = true;
+    signinSubmitBtn.textContent = 'Signing In...';
 
-    const { bmi, goalKey, adjustedTDEE, proteinG, carbsG, fatG, weight, height, age, gender } = _computed;
-    const cuisineEl = document.getElementById('onboard-cuisine');
-    const dietEl    = document.getElementById('onboard-diet');
+    try {
+      const endpoint = `${getApiBaseUrl()}/api/user-data?username=${encodeURIComponent(username)}`;
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Password': password
+        }
+      });
 
-    const proposedState = {
-      user: {
-        username,
-        email,
+      const resData = await response.json();
+      if (!response.ok) {
+        showToast(resData.error || 'Authentication failed!', '🔒');
+        signinSubmitBtn.disabled = false;
+        signinSubmitBtn.textContent = 'Sign In →';
+        return;
+      }
+
+      if (!resData.exists || !resData.data) {
+        showToast('Username does not exist. Please Sign Up.', '⚠️');
+        signinSubmitBtn.disabled = false;
+        signinSubmitBtn.textContent = 'Sign In →';
+        return;
+      }
+
+      localStorage.setItem('fitbuddy_password', password);
+      
+      const finalState = resData.data;
+      const { reloadState } = await import('./app.js');
+      reloadState(finalState, password);
+
+      modal.classList.remove('visible');
+      showToast(`Welcome back, ${username}!`, '🎉');
+
+    } catch (e) {
+      console.error(e);
+      showToast('Could not connect to server.', '⚠️');
+      signinSubmitBtn.disabled = false;
+      signinSubmitBtn.textContent = 'Sign In →';
+    }
+  });
+
+  signupNextBtn.addEventListener('click', () => {
+    const email = onboardEmailInput.value.trim();
+    const username = onboardUsernameInput.value.trim();
+    const password = onboardPasswordInput.value.trim();
+
+    standardSignupData = { email, username, password };
+    googleSessionState = null;
+
+    authSignupSection.style.display = 'none';
+    onboardBiometricsSection.style.display = 'block';
+  });
+
+  onboardSubmitBtn.addEventListener('click', async () => {
+    if (!_computedBiometrics) return;
+
+    onboardSubmitBtn.disabled = true;
+    onboardSubmitBtn.textContent = 'Saving Profile...';
+
+    const { bmi, goalKey, adjustedTDEE, proteinG, carbsG, fatG, weight, height, age, gender } = _computedBiometrics;
+    const cuisine = onboardCuisineSelect.value;
+    const diet = onboardDietSelect.value;
+
+    if (googleSessionState) {
+      const updatedState = { ...googleSessionState };
+      updatedState.user = {
+        ...updatedState.user,
         weight,
         height,
         age,
@@ -239,107 +383,116 @@ export function initOnboarding() {
         goal: goalKey,
         tdee: adjustedTDEE,
         macros: { protein: proteinG, carbs: carbsG, fat: fatG },
-        cuisine: cuisineEl ? cuisineEl.value : 'any',
-        diet:    dietEl    ? dietEl.value    : 'no-restriction',
-        userId: ''
-      },
-      today: {
-        date: new Date().toISOString().split('T')[0],
-        meals: [],
-        exercises: [],
-        water: 0,
-        sleep: 0,
-        mood: 'neutral',
-        xpEarned: 0,
-        challenges: []
-      },
-      xp: {
-        current: 0,
-        level: 1,
-        total: 0
-      },
-      settings: {
-        mode: 'proxy'
-      },
-      chatHistory: [],
-      onboarded: true
-    };
+        cuisine,
+        diet,
+      };
+      updatedState.onboarded = true;
 
-    try {
-      const endpoint = `${getApiBaseUrl()}/api/user-data`;
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: dbHeaders(),
-        body: JSON.stringify({ username, password, state: proposedState })
-      });
-      
-      const resData = await response.json();
-      
-      if (!response.ok) {
-        showToast(resData.error || 'Authentication failed!', '🔒');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Get Started →';
-        return;
+      try {
+        const response = await fetch(`${getApiBaseUrl()}/api/user-data`, {
+          method: 'POST',
+          headers: dbHeaders(),
+          body: JSON.stringify({
+            username: updatedState.user.username,
+            password: 'google-auth-session',
+            state: updatedState
+          })
+        });
+
+        const resData = await response.json();
+        if (!response.ok) {
+          showToast(resData.error || 'Failed to complete Google profile.', '⚠️');
+          onboardSubmitBtn.disabled = false;
+          onboardSubmitBtn.textContent = 'Complete Profile →';
+          return;
+        }
+
+        const { reloadState } = await import('./app.js');
+        reloadState(resData.state || updatedState, 'google-auth-session');
+
+        modal.classList.remove('visible');
+        showToast('Registration complete! Welcome to FitBuddy.', '🎉');
+
+      } catch (err) {
+        console.error(err);
+        showToast('Could not complete Google biometrics.', '⚠️');
+        onboardSubmitBtn.disabled = false;
+        onboardSubmitBtn.textContent = 'Complete Profile →';
       }
 
-      localStorage.setItem('fitbuddy_password', password);
-      
-      const finalState = resData.state || proposedState;
-      
-      const { reloadState } = await import('./app.js');
-      reloadState(finalState, password);
-      
-      modal.classList.remove('visible');
-      showToast(resData.exists ? `Welcome back, ${username}!` : `Account "${username}" created!`, '🎉');
-      
-    } catch (e) {
-      console.error('Authentication failed:', e);
-      showToast('Could not connect to server. Please try again.', '⚠️');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Get Started →';
+    } else if (standardSignupData) {
+      const { email, username, password } = standardSignupData;
+
+      const proposedState = {
+        user: {
+          username,
+          email,
+          weight,
+          height,
+          age,
+          gender,
+          bmi,
+          goal: goalKey,
+          tdee: adjustedTDEE,
+          macros: { protein: proteinG, carbs: carbsG, fat: fatG },
+          cuisine,
+          diet,
+          userId: ''
+        },
+        today: {
+          date: new Date().toISOString().split('T')[0],
+          meals: [],
+          exercises: [],
+          water: 0,
+          sleep: 0,
+          mood: 'neutral',
+          xpEarned: 0,
+          challenges: []
+        },
+        xp: {
+          current: 0,
+          level: 1,
+          total: 0
+        },
+        settings: {
+          mode: 'proxy'
+        },
+        chatHistory: [],
+        onboarded: true
+      };
+
+      try {
+        const response = await fetch(`${getApiBaseUrl()}/api/user-data`, {
+          method: 'POST',
+          headers: dbHeaders(),
+          body: JSON.stringify({ username, password, state: proposedState })
+        });
+
+        const resData = await response.json();
+        if (!response.ok) {
+          showToast(resData.error || 'Registration failed!', '🔒');
+          onboardSubmitBtn.disabled = false;
+          onboardSubmitBtn.textContent = 'Complete Profile →';
+          return;
+        }
+
+        localStorage.setItem('fitbuddy_password', password);
+        
+        const finalState = resData.state || proposedState;
+        const { reloadState } = await import('./app.js');
+        reloadState(finalState, password);
+
+        modal.classList.remove('visible');
+        showToast(`Account "${username}" registered!`, '🎉');
+
+      } catch (e) {
+        console.error(e);
+        showToast('Could not connect to server.', '⚠️');
+        onboardSubmitBtn.disabled = false;
+        onboardSubmitBtn.textContent = 'Complete Profile →';
+      }
     }
   });
-
-  const forgotPasswordLink = document.getElementById('forgot-password-link');
-  const onboardMainSection = document.getElementById('onboard-main-section');
-  const forgotPasswordSection = document.getElementById('forgot-password-section');
-  const verifyCodeSection = document.getElementById('verify-code-section');
-
-  const backToLoginLink = document.getElementById('back-to-login');
-  const backToResetLink = document.getElementById('back-to-reset');
-
-  const resetUsernameInput = document.getElementById('reset-username');
-  const resetEmailInput = document.getElementById('reset-email');
-  const resetSendCodeBtn = document.getElementById('reset-send-code');
-
-  const verifyCodeInput = document.getElementById('verify-code-input');
-  const verifyNewPasswordInput = document.getElementById('verify-new-password');
-  const resetSubmitNewPasswordBtn = document.getElementById('reset-submit-new-password');
-
-  if (forgotPasswordLink) {
-    forgotPasswordLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      onboardMainSection.style.display = 'none';
-      forgotPasswordSection.style.display = 'block';
-    });
-  }
-
-  if (backToLoginLink) {
-    backToLoginLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      forgotPasswordSection.style.display = 'none';
-      onboardMainSection.style.display = 'block';
-    });
-  }
-
-  if (backToResetLink) {
-    backToResetLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      verifyCodeSection.style.display = 'none';
-      forgotPasswordSection.style.display = 'block';
-    });
-  }
 
   if (resetSendCodeBtn) {
     resetSendCodeBtn.addEventListener('click', async () => {
@@ -371,7 +524,6 @@ export function initOnboarding() {
 
         if (data.devMode && data.code) {
           showToast(`[Dev Mode] Code: ${data.code}`, '🔑');
-          console.log(`[Dev Mode] Recovery code: ${data.code}`);
         } else {
           showToast('Verification code sent to your email!', '✉️');
         }
@@ -423,15 +575,13 @@ export function initOnboarding() {
           return;
         }
 
-        showToast('Password reset successfully! Logging you in...', '🎉');
-        localStorage.setItem('fitbuddy_password', newPassword);
-
+        showToast('Password reset successfully! Please sign in.', '🎉');
+        
         verifyCodeSection.style.display = 'none';
-        onboardMainSection.style.display = 'block';
-        usernameInput.value = username;
-        passwordInput.value = newPassword;
-        recalculate();
-        submitBtn.click();
+        authSigninSection.style.display = 'block';
+        signinUsernameInput.value = username;
+        signinPasswordInput.value = newPassword;
+        validateSignin();
 
       } catch (err) {
         console.error(err);

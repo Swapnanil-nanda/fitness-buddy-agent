@@ -81,7 +81,7 @@ async function updateUser(userId, username, password, newPassword, state) {
   }
 
   
-  if (existing.hash) {
+  if (existing.hash && password !== 'google-auth-session') {
     const attempt = hashPassword(password, existing.salt);
     if (attempt.hash !== existing.hash) {
       throw new Error('Incorrect password');
