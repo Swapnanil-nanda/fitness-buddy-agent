@@ -19,7 +19,7 @@ let googleSessionState = null;
 let standardSignupData = null;
 let _computedBiometrics = null;
 
-window.handleCredentialResponse = async (response) => {
+window.__actualHandleCredentialResponse = async (response) => {
   try {
     const jwt = response.credential;
     const payloadBase64 = jwt.split('.')[1];
@@ -73,6 +73,12 @@ window.handleCredentialResponse = async (response) => {
     showToast('Google Sign-In failed: ' + (err.message || err), '⚠️');
   }
 };
+
+if (window.__pendingGoogleResponse) {
+  const resp = window.__pendingGoogleResponse;
+  window.__pendingGoogleResponse = null;
+  window.__actualHandleCredentialResponse(resp);
+}
 
 export function initOnboarding() {
   const goToSignupBtn = document.getElementById('go-to-signup');
