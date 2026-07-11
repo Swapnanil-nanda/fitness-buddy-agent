@@ -8,22 +8,9 @@ const KCAL_PER_G_PROTEIN = 4;
 const KCAL_PER_G_CARBS   = 4;
 const KCAL_PER_G_FAT     = 9;
 
-
 const MACRO_PROTEIN_PCT = 0.30;
 const MACRO_CARBS_PCT   = 0.40;
 const MACRO_FAT_PCT     = 0.30;
-
-
-const GOAL_ADJUSTMENTS = {
-const KCAL_PER_G_PROTEIN = 4;
-const KCAL_PER_G_CARBS   = 4;
-const KCAL_PER_G_FAT     = 9;
-
-
-const MACRO_PROTEIN_PCT = 0.30;
-const MACRO_CARBS_PCT   = 0.40;
-const MACRO_FAT_PCT     = 0.30;
-
 
 const GOAL_ADJUSTMENTS = {
   loss:     -500,
