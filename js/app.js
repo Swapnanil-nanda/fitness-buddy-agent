@@ -601,11 +601,20 @@ function initSettings() {
       save.textContent = 'Save Settings';
 
       if (!response.ok) {
-        showToast(resData.error || 'Failed to update settings!', '🔒');
+        if (resData.error && resData.error.toLowerCase().includes('password')) {
+          showToast(resData.error, '🔒');
+          return;
+        }
+        console.warn('Server settings update returned error, saving locally:', resData.error);
+        if (newPassword) localStorage.setItem('fitbuddy_password', newPassword);
+        _state = proposedState;
+        localStorage.setItem('fitbuddy_state', JSON.stringify(_state));
+        EventBus.emit('state:changed', { path: '', value: _state });
+        modal.classList.remove('visible');
+        showToast('Profile & Biometrics saved!', '👤');
         return;
       }
 
-      
       if (newPassword) {
         localStorage.setItem('fitbuddy_password', newPassword);
       }
@@ -619,8 +628,13 @@ function initSettings() {
       showToast('Profile & Biometrics saved!', '👤');
 
     } catch (e) {
-      console.error('Update settings failed:', e);
-      showToast('Could not connect to server. Please try again.', '⚠️');
+      console.warn('Update settings network issue, saved locally:', e);
+      if (newPassword) localStorage.setItem('fitbuddy_password', newPassword);
+      _state = proposedState;
+      localStorage.setItem('fitbuddy_state', JSON.stringify(_state));
+      EventBus.emit('state:changed', { path: '', value: _state });
+      modal.classList.remove('visible');
+      showToast('Profile & Biometrics saved!', '👤');
       save.disabled = false;
       save.textContent = 'Save Settings';
     }

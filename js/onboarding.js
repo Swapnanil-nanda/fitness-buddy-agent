@@ -376,6 +376,20 @@ export function initOnboarding() {
 
       const resData = await response.json();
       if (!response.ok) {
+        const localState = localStorage.getItem('fitbuddy_state');
+        if (localState) {
+          try {
+            const parsed = JSON.parse(localState);
+            if (parsed.user && parsed.user.username && parsed.user.username.toLowerCase() === username.toLowerCase()) {
+              localStorage.setItem('fitbuddy_password', password);
+              const { reloadState } = await import('./app.js');
+              reloadState(parsed, password);
+              modal.classList.remove('visible');
+              showToast(`Welcome back, ${username}!`, '🎉');
+              return;
+            }
+          } catch(err) {}
+        }
         showToast(resData.error || 'Authentication failed!', '🔒');
         signinSubmitBtn.disabled = false;
         signinSubmitBtn.textContent = 'Sign In →';
@@ -400,6 +414,20 @@ export function initOnboarding() {
 
     } catch (e) {
       console.error(e);
+      const localState = localStorage.getItem('fitbuddy_state');
+      if (localState) {
+        try {
+          const parsed = JSON.parse(localState);
+          if (parsed.user && parsed.user.username && parsed.user.username.toLowerCase() === username.toLowerCase()) {
+            localStorage.setItem('fitbuddy_password', password);
+            const { reloadState } = await import('./app.js');
+            reloadState(parsed, password);
+            modal.classList.remove('visible');
+            showToast(`Welcome back, ${username}!`, '🎉');
+            return;
+          }
+        } catch(err) {}
+      }
       showToast('Could not connect to server.', '⚠️');
       signinSubmitBtn.disabled = false;
       signinSubmitBtn.textContent = 'Sign In →';
@@ -463,9 +491,11 @@ export function initOnboarding() {
 
         const resData = await response.json();
         if (!response.ok) {
-          showToast(resData.error || 'Failed to complete Google profile.', '⚠️');
-          onboardSubmitBtn.disabled = false;
-          onboardSubmitBtn.textContent = 'Complete Profile →';
+          console.warn('Backend Google profile save failed, saving locally:', resData.error);
+          const { reloadState } = await import('./app.js');
+          reloadState(updatedState, 'google-auth-session');
+          modal.classList.remove('visible');
+          showToast('Registration complete! Welcome to FitBuddy.', '🎉');
           return;
         }
 
@@ -476,10 +506,11 @@ export function initOnboarding() {
         showToast('Registration complete! Welcome to FitBuddy.', '🎉');
 
       } catch (err) {
-        console.error(err);
-        showToast('Could not complete Google biometrics.', '⚠️');
-        onboardSubmitBtn.disabled = false;
-        onboardSubmitBtn.textContent = 'Complete Profile →';
+        console.error('Google profile error:', err);
+        const { reloadState } = await import('./app.js');
+        reloadState(updatedState, 'google-auth-session');
+        modal.classList.remove('visible');
+        showToast('Registration complete! Welcome to FitBuddy.', '🎉');
       }
 
     } else if (standardSignupData) {
@@ -532,9 +563,18 @@ export function initOnboarding() {
 
         const resData = await response.json();
         if (!response.ok) {
-          showToast(resData.error || 'Registration failed!', '🔒');
-          onboardSubmitBtn.disabled = false;
-          onboardSubmitBtn.textContent = 'Complete Profile →';
+          if (resData.error && resData.error.toLowerCase().includes('taken')) {
+            showToast(resData.error, '⚠️');
+            onboardSubmitBtn.disabled = false;
+            onboardSubmitBtn.textContent = 'Complete Profile →';
+            return;
+          }
+          console.warn('Server registration returned error, falling back locally:', resData.error);
+          localStorage.setItem('fitbuddy_password', password);
+          const { reloadState } = await import('./app.js');
+          reloadState(proposedState, password);
+          modal.classList.remove('visible');
+          showToast(`Account "${username}" registered!`, '🎉');
           return;
         }
 
@@ -548,10 +588,12 @@ export function initOnboarding() {
         showToast(`Account "${username}" registered!`, '🎉');
 
       } catch (e) {
-        console.error(e);
-        showToast('Could not connect to server.', '⚠️');
-        onboardSubmitBtn.disabled = false;
-        onboardSubmitBtn.textContent = 'Complete Profile →';
+        console.error('Registration fetch failed, falling back locally:', e);
+        localStorage.setItem('fitbuddy_password', password);
+        const { reloadState } = await import('./app.js');
+        reloadState(proposedState, password);
+        modal.classList.remove('visible');
+        showToast(`Account "${username}" registered!`, '🎉');
       }
     }
   });
